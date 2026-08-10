@@ -1,29 +1,32 @@
 """
 CLI Automation script for running the complete CoopGCN benchmark across target datasets,
-including automated data download & caching, head-to-head baseline training,
+including automated data download & caching, head-to-head baseline training across the 8-model canonical suite
+(MF, NCF, LightGCN, RecDCL, HCCF, HPCF, DyHuCoG, and CoopGCN),
 THE Central Make-or-Break Ablation, the 10-Row Component Ablation Study,
 adversarial edge noise immunity, and generating publication figures and LaTeX tables.
-Includes automatic checkpointing to resume after interruptions without re-running completed models.
 """
 
 import os
 import sys
 import argparse
 import time
-import json
 import numpy as np
 import pandas as pd
 import torch
 
-# Add root directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.insert(0, os.path.abspath("."))
 
 from coopgcn import (
     load_benchmark_dataset,
+    MF,
+    NCF,
     LightGCN,
     LightGCNPlusPlus,
     GATCF,
+    RecDCL,
+    HCCF,
+    HPCF,
     DyHuCoGBaseline,
     CoopGCN,
     CoopGCNLoss,
@@ -45,7 +48,7 @@ def run_benchmark(
     os.makedirs(ckpt_dir, exist_ok=True)
 
     device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🚀 Running Complete CoopGCN Benchmark on device: [{device}] (Resume={resume})")
+    print(f"🚀 Running Complete CoopGCN 8-Model Benchmark on device: [{device}] (Resume={resume})")
 
     all_dataset_results = {}
     primary_dataset = None
@@ -64,12 +67,27 @@ def run_benchmark(
             primary_dataset = dataset
 
         print("\n" + "=" * 70)
-        print(f"EXPERIMENT 2: Head-to-Head Baseline Training [{dataset_name}]")
+        print(f"EXPERIMENT 2: 8-Model Head-to-Head Baseline Training [{dataset_name}]")
         print("=" * 70)
         models_to_train = {
+            "MF": MF(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=0),
+            "NCF": NCF(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=1),
             "LightGCN": LightGCN(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
-            "LightGCN++": LightGCNPlusPlus(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
-            "GAT-CF": GATCF(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
+            "RecDCL": RecDCL(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
+            "HCCF": HCCF(
+                dataset.num_users,
+                dataset.num_items,
+                embed_dim=32,
+                num_layers=2,
+                num_hyperedges=max(10, len(dataset.hyperedges)),
+            ),
+            "HPCF": HPCF(
+                dataset.num_users,
+                dataset.num_items,
+                embed_dim=32,
+                num_layers=2,
+                num_hyperedges=max(10, len(dataset.hyperedges)),
+            ),
             "DyHuCoG": DyHuCoGBaseline(
                 dataset.num_users,
                 dataset.num_items,
@@ -82,7 +100,7 @@ def run_benchmark(
                 dataset.num_items,
                 embed_dim=32,
                 num_layers=2,
-                lambda_param=0.15,
+                lambda_param=0.03,
                 num_hyperedges=max(10, len(dataset.hyperedges)),
             ),
         }
@@ -124,7 +142,7 @@ def run_benchmark(
             )
             results_dict[name] = test_metrics
             print(
-                f"✅ [{name}] NDCG@20: {test_metrics['NDCG@20']:.4f} | TR@20: {test_metrics['TR@20']:.4f} | Cov@20: {test_metrics['Coverage@20']:.4f}"
+                f"✅ [{name:15s}] NDCG@20: {test_metrics['NDCG@20']:.4f} | TR@20: {test_metrics['TR@20']:.4f} | Cov@20: {test_metrics['Coverage@20']:.4f}"
             )
 
         df_ds = pd.DataFrame(results_dict).T
@@ -174,7 +192,7 @@ def run_benchmark(
             primary_dataset.num_items,
             embed_dim=32,
             num_layers=2,
-            lambda_param=0.15,
+            lambda_param=0.03,
             num_hyperedges=0,
         ),
         "CoopGCN (w/o L_game Consistency)": CoopGCN(
@@ -182,15 +200,16 @@ def run_benchmark(
             primary_dataset.num_items,
             embed_dim=32,
             num_layers=2,
-            lambda_param=0.15,
+            lambda_param=0.03,
             num_hyperedges=max(10, len(primary_dataset.hyperedges)),
         ),
     }
     component_ablation = {
         "1. LightGCN (Floor)": primary_results_dict["LightGCN"],
-        "2. LightGCN++": primary_results_dict["LightGCN++"],
-        "3. GAT-CF": primary_results_dict["GAT-CF"],
-        "4. DyHuCoG": primary_results_dict["DyHuCoG"],
+        "2. RecDCL": primary_results_dict["RecDCL"],
+        "3. HCCF": primary_results_dict["HCCF"],
+        "4. HPCF": primary_results_dict["HPCF"],
+        "5. DyHuCoG": primary_results_dict["DyHuCoG"],
     }
     for name, ab_model in ablation_models.items():
         print(f"---> Training ablation variant: {name} ...")
@@ -238,7 +257,7 @@ def run_benchmark(
     print("=" * 70)
     noise_ratios = [0.0, 0.05, 0.10, 0.20]
     noise_dict = {}
-    for name in ["LightGCN", "GAT-CF", "DyHuCoG", "CoopGCN (Ours)"]:
+    for name in ["LightGCN", "HCCF", "HPCF", "DyHuCoG", "CoopGCN (Ours)"]:
         curve = {}
         for r in noise_ratios:
             if r == 0.0:
@@ -253,12 +272,22 @@ def run_benchmark(
                         num_layers=2,
                     )
                     loss_fn = None
-                elif name == "GAT-CF":
-                    n_model = GATCF(
+                elif name == "HCCF":
+                    n_model = HCCF(
                         noisy_ds.num_users,
                         noisy_ds.num_items,
                         embed_dim=32,
                         num_layers=2,
+                        num_hyperedges=max(10, len(noisy_ds.hyperedges)),
+                    )
+                    loss_fn = None
+                elif name == "HPCF":
+                    n_model = HPCF(
+                        noisy_ds.num_users,
+                        noisy_ds.num_items,
+                        embed_dim=32,
+                        num_layers=2,
+                        num_hyperedges=max(10, len(noisy_ds.hyperedges)),
                     )
                     loss_fn = None
                 elif name == "DyHuCoG":
@@ -276,7 +305,7 @@ def run_benchmark(
                         noisy_ds.num_items,
                         embed_dim=32,
                         num_layers=2,
-                        lambda_param=0.15,
+                        lambda_param=0.03,
                         num_hyperedges=max(10, len(noisy_ds.hyperedges)),
                     )
                     loss_fn = CoopGCNLoss()

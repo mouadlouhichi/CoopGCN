@@ -5,7 +5,7 @@ via Cooperative Game Theory for Robust, Preference-Aware Recommendation.
 Modules:
 - dataset: Benchmark dataset loader (MovieLens, Gowalla) & Step 0.5 Leakage Audit.
 - models: MCShapleyEdgeWeighting (G1), ShapleyHypergraphConv (G2), SVDContrastiveView,
-          CoopGCN full architecture, and baselines (LightGCN, LightGCN++, GAT-CF, DyHuCoG).
+          CoopGCN full architecture, and baselines (MF, NCF, LightGCN, RecDCL, HCCF, HPCF, DyHuCoG).
 - losses: Multi-task objective combining L_rank (gBCE), L_cl (InfoNCE), and L_game (consistency).
 - shapley_data: Offline TMC-Shapley data valuation (G3) & noise pruning.
 - evaluator: Multi-dimensional evaluation (NDCG@K, Recall@K, TR@K, Coverage@K, Gini, Noise Immunity).
@@ -19,9 +19,14 @@ from .models import (
     ShapleyHypergraphConv,
     SVDContrastiveView,
     CoopGCN,
+    MF,
+    NCF,
     LightGCN,
     LightGCNPlusPlus,
     GATCF,
+    RecDCL,
+    HCCF,
+    HPCF,
     DyHuCoGBaseline,
 )
 from .losses import CoopGCNLoss
@@ -38,9 +43,14 @@ __all__ = [
     "ShapleyHypergraphConv",
     "SVDContrastiveView",
     "CoopGCN",
+    "MF",
+    "NCF",
     "LightGCN",
     "LightGCNPlusPlus",
     "GATCF",
+    "RecDCL",
+    "HCCF",
+    "HPCF",
     "DyHuCoGBaseline",
     "CoopGCNLoss",
     "TMCShapleyDataValuator",

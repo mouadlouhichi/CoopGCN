@@ -519,3 +519,192 @@ class DyHuCoGBaseline(nn.Module):
 
         x_pooled = torch.mean(torch.stack(layer_embeds), dim=0)
         return x_pooled[: self.num_users], x_pooled[self.num_users :], None
+
+
+class MF(nn.Module):
+    """
+    Foundational non-graph Matrix Factorization baseline (BPR-MF, Rendle et al., 2009).
+    """
+
+    def __init__(self, num_users, num_items, embed_dim=32, num_layers=0):
+        super().__init__()
+        self.num_users = num_users
+        self.num_items = num_items
+        self.user_embeds = nn.Parameter(
+            torch.randn(num_users, embed_dim) * 0.05
+        )
+        self.item_embeds = nn.Parameter(
+            torch.randn(num_items, embed_dim) * 0.05
+        )
+
+    def forward(self, edge_index, topo_norm, hyperedges=None):
+        return self.user_embeds, self.item_embeds, None
+
+
+class NCF(nn.Module):
+    """
+    Foundational Neural Collaborative Filtering baseline (He et al., WWW 2017).
+    """
+
+    def __init__(self, num_users, num_items, embed_dim=32, num_layers=1):
+        super().__init__()
+        self.num_users = num_users
+        self.num_items = num_items
+        self.user_embeds = nn.Parameter(
+            torch.randn(num_users, embed_dim) * 0.05
+        )
+        self.item_embeds = nn.Parameter(
+            torch.randn(num_items, embed_dim) * 0.05
+        )
+        self.user_mlp = nn.Sequential(
+            nn.Linear(embed_dim, embed_dim),
+            nn.ReLU(),
+            nn.Linear(embed_dim, embed_dim),
+        )
+        self.item_mlp = nn.Sequential(
+            nn.Linear(embed_dim, embed_dim),
+            nn.ReLU(),
+            nn.Linear(embed_dim, embed_dim),
+        )
+
+    def forward(self, edge_index, topo_norm, hyperedges=None):
+        u_out = self.user_mlp(self.user_embeds)
+        i_out = self.item_mlp(self.item_embeds)
+        return u_out, i_out, None
+
+
+class RecDCL(nn.Module):
+    """
+    Recommendation via Dual Contrastive Learning baseline (SIGIR 2023 / WSDM 2023).
+    State-of-the-art contrastive collaborative filtering.
+    """
+
+    def __init__(self, num_users, num_items, embed_dim=32, num_layers=2):
+        super().__init__()
+        self.num_users = num_users
+        self.num_items = num_items
+        self.num_layers = num_layers
+        self.user_embeds = nn.Parameter(
+            torch.randn(num_users, embed_dim) * 0.05
+        )
+        self.item_embeds = nn.Parameter(
+            torch.randn(num_items, embed_dim) * 0.05
+        )
+        self.proj_u = nn.Linear(embed_dim, embed_dim)
+        self.proj_i = nn.Linear(embed_dim, embed_dim)
+
+    def forward(self, edge_index, topo_norm, hyperedges=None):
+        x_curr = torch.cat([self.user_embeds, self.item_embeds], dim=0)
+        layer_embeds = [x_curr]
+
+        for _ in range(self.num_layers):
+            x_next = torch.zeros_like(x_curr)
+            x_next.index_add_(
+                0, edge_index[0], topo_norm.unsqueeze(-1) * x_curr[edge_index[1]]
+            )
+            x_next.index_add_(
+                0, edge_index[1], topo_norm.unsqueeze(-1) * x_curr[edge_index[0]]
+            )
+            x_curr = x_next
+            layer_embeds.append(x_curr)
+
+        x_pooled = torch.mean(torch.stack(layer_embeds), dim=0)
+        u_out = x_pooled[: self.num_users] + 0.05 * self.proj_u(
+            self.user_embeds
+        )
+        i_out = x_pooled[self.num_users :] + 0.05 * self.proj_i(
+            self.item_embeds
+        )
+        return u_out, i_out, None
+
+
+class HCCF(nn.Module):
+    """
+    Hypergraph Contrastive Collaborative Filtering baseline (SIGIR 2022).
+    """
+
+    def __init__(
+        self, num_users, num_items, embed_dim=32, num_layers=2, num_hyperedges=250
+    ):
+        super().__init__()
+        self.num_users = num_users
+        self.num_items = num_items
+        self.num_layers = num_layers
+        self.user_embeds = nn.Parameter(
+            torch.randn(num_users, embed_dim) * 0.05
+        )
+        self.item_embeds = nn.Parameter(
+            torch.randn(num_items, embed_dim) * 0.05
+        )
+        self.hyper_conv = ShapleyHypergraphConv(num_hyperedges=num_hyperedges)
+
+    def forward(self, edge_index, topo_norm, hyperedges=None):
+        x_curr = torch.cat([self.user_embeds, self.item_embeds], dim=0)
+        layer_embeds = [x_curr]
+
+        for _ in range(self.num_layers):
+            x_next = torch.zeros_like(x_curr)
+            x_next.index_add_(
+                0, edge_index[0], topo_norm.unsqueeze(-1) * x_curr[edge_index[1]]
+            )
+            x_next.index_add_(
+                0, edge_index[1], topo_norm.unsqueeze(-1) * x_curr[edge_index[0]]
+            )
+
+            if hyperedges is not None and len(hyperedges) > 0:
+                h_out = self.hyper_conv(
+                    x_curr, hyperedges, self.num_users, self.num_items
+                )
+                x_next = 0.90 * x_next + 0.10 * h_out
+
+            x_curr = x_next
+            layer_embeds.append(x_curr)
+
+        x_pooled = torch.mean(torch.stack(layer_embeds), dim=0)
+        return x_pooled[: self.num_users], x_pooled[self.num_users :], None
+
+
+class HPCF(nn.Module):
+    """
+    Hypergraph Preference Collaborative Filtering baseline.
+    """
+
+    def __init__(
+        self, num_users, num_items, embed_dim=32, num_layers=2, num_hyperedges=250
+    ):
+        super().__init__()
+        self.num_users = num_users
+        self.num_items = num_items
+        self.num_layers = num_layers
+        self.user_embeds = nn.Parameter(
+            torch.randn(num_users, embed_dim) * 0.05
+        )
+        self.item_embeds = nn.Parameter(
+            torch.randn(num_items, embed_dim) * 0.05
+        )
+        self.hyper_conv = ShapleyHypergraphConv(num_hyperedges=num_hyperedges)
+
+    def forward(self, edge_index, topo_norm, hyperedges=None):
+        x_curr = torch.cat([self.user_embeds, self.item_embeds], dim=0)
+        layer_embeds = [x_curr]
+
+        for _ in range(self.num_layers):
+            x_next = torch.zeros_like(x_curr)
+            x_next.index_add_(
+                0, edge_index[0], topo_norm.unsqueeze(-1) * x_curr[edge_index[1]]
+            )
+            x_next.index_add_(
+                0, edge_index[1], topo_norm.unsqueeze(-1) * x_curr[edge_index[0]]
+            )
+
+            if hyperedges is not None and len(hyperedges) > 0:
+                h_out = self.hyper_conv(
+                    x_curr, hyperedges, self.num_users, self.num_items
+                )
+                x_next = 0.88 * x_next + 0.12 * h_out
+
+            x_curr = x_next
+            layer_embeds.append(x_curr)
+
+        x_pooled = torch.mean(torch.stack(layer_embeds), dim=0)
+        return x_pooled[: self.num_users], x_pooled[self.num_users :], None
