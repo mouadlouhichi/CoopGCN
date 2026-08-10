@@ -34,6 +34,8 @@ class CoopGCNTrainer:
         shapley_refresh_period=10,
         data_shapley_period=20,
     ):
+        torch.manual_seed(42)
+        np.random.seed(42)
         if device is None:
             if torch.backends.mps.is_available():
                 self.device = torch.device("mps")

@@ -19,8 +19,8 @@ class CoopGCNLoss(nn.Module):
 
     def __init__(
         self,
-        lambda_cl=0.02,
-        lambda_game=0.05,
+        lambda_cl=0.001,
+        lambda_game=0.0,
         lambda_reg=1e-4,
         temperature_cl=0.20,
         temperature_neg=0.50,
@@ -54,20 +54,13 @@ class CoopGCNLoss(nn.Module):
         u_emb = final_u[batch_users]
         pos_emb = final_i[batch_pos_items]
 
-        # 1. Ranking Loss (gBCE with sampled softmax negatives)
+        # 1. Ranking Loss (Shapley-weighted BPR over sampled negatives)
         pos_scores = (u_emb * pos_emb).sum(dim=-1)  # (B,)
-        neg_emb = final_i[batch_neg_items]  # (B, num_negs, d)
-        neg_scores = torch.bmm(neg_emb, u_emb.unsqueeze(-1)).squeeze(-1)  # (B, num_negs)
+        neg_emb = final_i[batch_neg_items[:, 0]]  # (B, d)
+        neg_scores = (u_emb * neg_emb).sum(dim=-1)  # (B,)
 
-        # Softmax weights over negatives to penalize hard negatives
-        neg_weights = F.softmax(neg_scores / self.temperature_neg, dim=-1).detach()
-
-        loss_pos = -torch.log(torch.sigmoid(pos_scores) + 1e-8)
-        loss_neg = -torch.sum(
-            neg_weights * torch.log(1.0 - torch.sigmoid(neg_scores) + 1e-8), dim=-1
-        )
-
-        l_rank = torch.mean(sample_weights * (loss_pos + loss_neg))
+        loss_bpr = -torch.log(torch.sigmoid(pos_scores - neg_scores) + 1e-8)
+        l_rank = torch.mean(sample_weights * loss_bpr)
 
         # 2. Contrastive InfoNCE Loss (L_cl against SVD global view)
         l_cl = torch.tensor(0.0, device=device)

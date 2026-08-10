@@ -14,7 +14,7 @@ class TMCShapleyDataValuator:
     evaluated on holdout temporal validation ranking accuracy.
     """
 
-    def __init__(self, num_train_edges, prune_cutoff_percentile=5.0, kappa=0.50):
+    def __init__(self, num_train_edges, prune_cutoff_percentile=5.0, kappa=0.01):
         self.num_train_edges = num_train_edges
         self.prune_cutoff_percentile = prune_cutoff_percentile
         self.kappa = kappa
@@ -46,7 +46,7 @@ class TMCShapleyDataValuator:
 
             # Vectorized lookup of tail bonus
             tail_mask_dev = dataset.tail_item_mask.to(device)
-            tail_bonus = torch.where(tail_mask_dev[i_indices], 1.20, 0.90)
+            tail_bonus = torch.where(tail_mask_dev[i_indices], 1.02, 0.99)
 
             credits = (torch.sigmoid(scores) * tail_bonus).cpu().numpy()
 

@@ -120,7 +120,8 @@ class MCShapleyEdgeWeighting(nn.Module):
         Returns Shapley-modulated edge weights w_ui for Channel A propagation.
         """
         att_weights = torch.sigmoid(attention_logits / self.temperature)
-        mod_weights = topo_norm * ((1.0 - lambda_param) + lambda_param * att_weights)
+        att_factor = 1.0 + lambda_param * (att_weights - 0.5) * 2.0
+        mod_weights = topo_norm * att_factor
         return mod_weights
 
 
@@ -256,7 +257,7 @@ class CoopGCN(nn.Module):
         num_items,
         embed_dim=64,
         num_layers=3,
-        lambda_param=0.15,
+        lambda_param=0.0,
         num_hyperedges=250,
     ):
         super().__init__()
@@ -282,7 +283,7 @@ class CoopGCN(nn.Module):
         )
 
         # Submodules
-        self.norm_scale = nn.Parameter(torch.ones(1) * 1.15)
+        self.norm_scale = nn.Parameter(torch.ones(1) * 1.0)
         self.edge_shapley = MCShapleyEdgeWeighting(
             num_users, num_items, embed_dim
         )
@@ -320,7 +321,7 @@ class CoopGCN(nn.Module):
                 h_out = self.hyper_conv(
                     x_curr, hyperedges, self.num_users, self.num_items
                 )
-                x_next = 0.85 * x_next + 0.15 * h_out
+                x_next = 0.99 * x_next + 0.01 * h_out
 
             x_curr = x_next
             layer_embeds.append(x_curr)
@@ -400,7 +401,7 @@ class LightGCNPlusPlus(nn.Module):
         self.item_embeds = nn.Parameter(
             torch.randn(num_items, embed_dim) * 0.05
         )
-        self.scale_param = nn.Parameter(torch.ones(1) * 1.15)
+        self.scale_param = nn.Parameter(torch.ones(1) * 1.05)
 
     def forward(self, edge_index, topo_norm, hyperedges=None):
         x_curr = torch.cat([self.user_embeds, self.item_embeds], dim=0)
@@ -511,7 +512,7 @@ class DyHuCoGBaseline(nn.Module):
                 h_out = self.hyper_conv(
                     x_curr, hyperedges, self.num_users, self.num_items
                 )
-                x_next = 0.80 * x_next + 0.20 * h_out
+                x_next = 0.99 * x_next + 0.01 * h_out
 
             x_curr = x_next
             layer_embeds.append(x_curr)
