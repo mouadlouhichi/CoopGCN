@@ -2,7 +2,7 @@
 
 # CoopGCN — Formalization & Implementation Sketch
 
-Technical companion to *lightgcn_shapley_analysis.html*. This document answers the critical review’s open questions: **exact game definitions (players, coalitions, value functions v(S))** for the three game levels, **loss equations**, **complexity analysis**, **PyTorch pseudo-code** for MC-Shapley edge weighting, and the **ablation/experiment matrix** that decides whether the paper lives or dies.
+Technical companion to *specs/CoopGCN_Spec.md*. This document answers the critical review’s open questions: **exact game definitions (players, coalitions, value functions v(S))** for the three game levels, **loss equations**, **complexity analysis**, **PyTorch pseudo-code** for MC-Shapley edge weighting, and the **ablation/experiment matrix** that decides whether the paper lives or dies.
 
 - G1 edges · G2 hyperedges · G3 data
 - value functions defined
@@ -285,5 +285,5 @@ Verdict metrics: R@20, N@20, **TR@20 (tail recall)**, Coverage@20, Gini, popular
 9. [Beyond Shapley Values (2025)](https://arxiv.org/pdf/2506.13900) — value-function design is the real decision
 10. [Are We Really Making Much Progress? (RecSys’22)](https://dl.acm.org/doi/10.1145/3523227.3546767) — baseline tuning symmetry
 
-_ CoopGCN project docs: *lightgcn_shapley_analysis.html* (analysis & blueprint) → this file (formalization) → experiment harness (next) · Compiled Aug 2026. _
+_ CoopGCN project docs: *specs/CoopGCN_Spec.md* (analysis & blueprint) → this file (formalization) → experiment harness (next) · Compiled Aug 2026. _
 

@@ -361,7 +361,7 @@ LightGCN&rsquo;s success comes from one insight — <i>drop the nonlinearities, 
 
 <h2>6&nbsp;&nbsp;External critical review — response &amp; refinements</h2>
 <div class="card">
-<p>A peer-style critical review of this blueprint graded it <b>A− as a blueprint, incomplete as a paper</b>, and flagged concrete gaps. All points are addressed — the detailed formal fixes live in the companion document <i><b>coopgcn_formalization.html</b></i> (games, value functions, losses, PyTorch sketch, experiment matrix). Summary of the response:</p>
+<p>A peer-style critical review of this blueprint graded it <b>A− as a blueprint, incomplete as a paper</b>, and flagged concrete gaps. All points are addressed — the detailed formal fixes live in the companion document <i><b>CoopGCN_Implementation.html</b></i> (games, value functions, losses, PyTorch sketch, experiment matrix). Summary of the response:</p>
 <table>
 <tr><th>Review point</th><th>Response / action taken</th></tr>
 <tr><td><b>&ldquo;v(S) is never defined — the biggest missing piece.&rdquo;</b></td><td>Now formalized: <b>v<sup>cons</sup></b>(S) = −‖(1/|S|)Σ<sub>i∈S</sub>e<sub>i</sub> − ē<sub>u</sub>‖² (default G1), <b>v<sup>pref</sup></b>(S) = α·avg affinity + β·tail + γ·diversity (default G2, blocks popularity free-riding), <b>v<sup>ndcg</sup></b> = holdout NDCG (offline G3). Full math in §2 of the companion.</td></tr>
