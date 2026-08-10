@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoopGCN — Formalization &amp; Implementation Sketch</title>
+<style>
+:root{--ink:#1a2332;--mut:#5b6675;--bg:#f6f7f9;--card:#fff;--line:#e3e7ee;
+--accent:#2b5fd9;--teal:#0f9d8f;--warn:#b45309;--good:#15803d;--bad:#b91c1c;--purple:#6d28d9}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+background:var(--bg);color:var(--ink);line-height:1.58;font-size:15px}
+.wrap{max-width:1020px;margin:0 auto;padding:28px 22px 80px}
+header.hero{background:linear-gradient(135deg,#121c2e 0%,#1d3a8f 60%,#0f9d8f 130%);color:#fff;
+border-radius:16px;padding:30px 32px;margin-bottom:22px}
+header.hero h1{font-size:25px;letter-spacing:-.3px;margin-bottom:8px}
+header.hero p{opacity:.93;font-size:14.5px;max-width:820px}
+.badges{margin-top:14px}
+.badge{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);
+border-radius:999px;padding:3px 12px;font-size:12px;margin:0 6px 6px 0}
+h2{font-size:20px;margin:36px 0 12px;padding-left:12px;border-left:5px solid var(--accent);letter-spacing:-.2px}
+h3{font-size:16px;margin:22px 0 8px}
+p{margin:8px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+.tldr{background:#eef4ff;border:1px solid #c9d9ff;border-radius:12px;padding:16px 20px;margin:16px 0}
+.tldr b{color:#123a8f}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.4px;background:#fff}
+th{background:#eef1f7;text-align:left;padding:8px 10px;border:1px solid var(--line);font-size:12px;
+text-transform:uppercase;letter-spacing:.4px;color:#3c4657}
+td{padding:7px 10px;border:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:#fafbfd}
+.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.best{background:#e8f7ee !important;font-weight:600;color:var(--good)}
+.mut{color:var(--mut);font-size:13px}
+.note{font-size:12.5px;color:var(--mut);margin:6px 0 0}
+ul,ol{margin:8px 0 8px 22px}
+li{margin:5px 0}
+.formula{background:#101c3f;color:#e8edf7;border-radius:10px;padding:14px 18px;font-family:Georgia,'Times New Roman',serif;
+font-size:15px;margin:12px 0;overflow-x:auto;line-height:1.9}
+.formula .hl{color:#ffd76a;font-weight:600}
+.formula .c{color:#8fa3d9;font-size:13px}
+pre.code{background:#0d1526;color:#c9d6f0;border-radius:10px;padding:14px 18px;font-family:'SF Mono',Menlo,Consolas,monospace;
+font-size:12.3px;line-height:1.55;margin:12px 0;overflow-x:auto}
+pre.code .k{color:#7dd3fc}.pre{white-space:pre}
+.kbox{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+.k{flex:1 1 300px;background:#fafbfd;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.k b{display:block;font-size:13.5px;margin-bottom:4px}
+.k span{font-size:13px;color:#374151}
+.goodbox{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 20px;margin:14px 0}
+.goodbox b{color:#15803d}
+.warnbox{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:16px 20px;margin:14px 0}
+.warnbox b{color:#9a3412}
+.foot{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--mut)}
+.tag{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 8px;margin-right:6px}
+.t-g1{background:#e0ecfb;color:#1e40af}.t-g2{background:#efe4fb;color:#6b21a8}.t-g3{background:#e0f2e9;color:#166534}
+.src{font-size:13px}.src a{color:var(--accent);text-decoration:none}.src a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>CoopGCN — Formalization &amp; Implementation Sketch</h1>
+  <p>Technical companion to <i>lightgcn_shapley_analysis.html</i>. This document answers the critical review&rsquo;s open questions: <b>exact game definitions (players, coalitions, value functions v(S))</b> for the three game levels, <b>loss equations</b>, <b>complexity analysis</b>, <b>PyTorch pseudo-code</b> for MC-Shapley edge weighting, and the <b>ablation/experiment matrix</b> that decides whether the paper lives or dies.</p>
+  <div class="badges">
+    <span class="badge">G1 edges · G2 hyperedges · G3 data</span>
+    <span class="badge">value functions defined</span>
+    <span class="badge">PyTorch sketch</span>
+    <span class="badge">8 open questions answered</span>
+  </div>
+</header>
+
+<div class="tldr">
+<b>TL;DR — what changed after the critical review:</b>
+<ol>
+<li><b>v(S) is now concrete</b> (§2–3): a consistency utility (distance to the full-model embedding), a preference-aware utility with tail/diversity terms (DyHuCoG-style), and an offline holdout-NDCG variant. One instantiation per game level.</li>
+<li><b>Scope tightened:</b> the paper = G1+G2+G3. G4–G8 (popularity, cold-start, multi-behavior, negatives, explainability) move to future work.</li>
+<li><b>The "Shapley vs attention" question becomes the central ablation</b> (§7): φ̂-weighting vs uniform vs degree-norm vs GAT vs LightGCN++ scalar, judged on tail/robustness metrics — not just NDCG.</li>
+<li><b>Gains reframed as non-additive</b>, reported as per-ablation deltas from a strong no-game baseline (Baseline+), on leakage-free temporal splits.</li>
+</ol>
+</div>
+
+<h2>1&nbsp;&nbsp;Notation</h2>
+<div class="card">
+<table>
+<tr><th>Symbol</th><th>Meaning</th></tr>
+<tr><td>G = (U, I, E)</td><td>Bipartite user–item interaction graph</td></tr>
+<tr><td>N(u) ⊆ I</td><td>Item-neighborhood of user u (players of u&rsquo;s game)</td></tr>
+<tr><td>d<sub>u</sub>, d<sub>i</sub></td><td>Node degrees</td></tr>
+<tr><td>e<sub>u</sub><sup>(k)</sup></td><td>Layer-k embedding; ē<sub>u</sub> = Σ<sub>k</sub> α<sub>k</sub>e<sub>u</sub><sup>(k)</sup> final (pooled)</td></tr>
+<tr><td>s<sub>ui</sub> = ē<sub>u</sub>·ē<sub>i</sub></td><td>Predicted score</td></tr>
+<tr><td>H = (V, E<sub>H</sub>)</td><td>Hypergraph (sessions, categories, tags); D<sub>v</sub>, D<sub>e</sub> degree matrices</td></tr>
+<tr><td>Γ = (N, v)</td><td>Cooperative game: players N, value function v: 2<sup>N</sup> → ℝ</td></tr>
+<tr><td>φ<sub>j</sub>, φ̂<sub>j</sub></td><td>Shapley value (exact / Monte-Carlo estimate)</td></tr>
+</table>
+</div>
+
+<h2>2&nbsp;&nbsp;The three games — formal definitions</h2>
+
+<h3>2.1&nbsp;&nbsp;<span class="tag t-g1">G1</span>Edge-level game (pairwise message weights) <span class="mut">— main novelty claim</span></h3>
+<div class="card">
+<p><b>Game.</b> For each user u, define the local game Γ<sub>u</sub> = (N(u), v<sub>u</sub>): players are u&rsquo;s neighbors (interactions); a coalition S ⊆ N(u) is a subset of interactions; v<sub>u</sub>(S) measures how good the representation built from S is.</p>
+<p><b>Value functions (the review&rsquo;s key ask).</b> Three instantiations, to be selected per level:</p>
+<table>
+<tr><th>#</th><th>v<sub>u</sub>(S)</th><th>Intuition</th><th>Cost</th><th>Use</th></tr>
+<tr><td>v<sup>cons</sup></td><td class="num">−‖ (1/|S|) Σ<sub>i∈S</sub> e<sub>i</sub> − ē<sub>u</sub> ‖²</td><td>Consistency: a coalition is valuable if it reconstructs the full-model user embedding</td><td>O(|S|·d), free</td><td><b>Default (G1)</b>, recomputed with period</td></tr>
+<tr><td>v<sup>pref</sup></td><td class="num">α·(1/|S|)Σ<sub>i∈S</sub> s<sub>ui</sub> + β·tail(S) + γ·div(S)</td><td>Preference-aware (DyHuCoG-style): accuracy + tail-share + diversity — prevents popularity free-riding</td><td>O(|S|·d)</td><td><b>Default (G2)</b> and when fairness is the goal</td></tr>
+<tr><td>v<sup>ndcg</sup></td><td class="num">NDCG@K(u; model trained on S)</td><td>Ground-truth utility</td><td>Full retraining — offline only</td><td>G3 (data valuation), audit</td></tr>
+</table>
+<div class="formula">
+φ<sub>i</sub>(u) = Σ<sub>S ⊆ N(u)∖{i}</sub> <span class="hl">|S|!(|N(u)|−|S|−1)! / |N(u)|!</span> · [ v<sub>u</sub>(S ∪ {i}) − v<sub>u</sub>(S) ]
+<span class="c">— the unique allocation satisfying efficiency, symmetry, dummy, additivity (Shapley 1953)</span>
+</div>
+<p><b>Edge weights.</b> Inject φ̂ as a modulation of the LightGCN normalization, with an interpolation λ that makes the game optional:</p>
+<div class="formula">
+w<sub>ui</sub> = (1/√(d<sub>u</sub>d<sub>i</sub>)) · [ (1−λ) + λ·σ(φ̂<sub>ui</sub>/τ) ] &nbsp;&nbsp; <span class="c">λ ∈ [0,1], σ = sigmoid, τ = temperature</span>
+</div>
+<div class="goodbox"><b>Proposition 1 (recovery).</b> For λ = 0, CoopGCN&rsquo;s Channel A reduces exactly to LightGCN. Moreover, if all neighbors are symmetric in φ̂ (as the symmetry axiom forces for interchangeable players), the modulation is uniform — so <b>φ̂-weighted aggregation is a generalization of LightGCN++-style scalar weighting</b>, with the theory telling us when weighting is unnecessary. This is the &ldquo;φ̂ vs learned scalar&rdquo; bridge reviewers will probe.</div>
+</div>
+
+<h3>2.2&nbsp;&nbsp;<span class="tag t-g2">G2</span>Hyperedge-level game (group channel) <span class="mut">— DyHuCoG&rsquo;s idea, extended</span></h3>
+<div class="card">
+<p><b>Game.</b> For each hyperedge h ∈ E<sub>H</sub> (a session, category, tag — constructed from train data only), players = member interactions; coalition game Γ<sub>h</sub> = (h, v<sub>h</sub>) with preference-aware utility:</p>
+<div class="formula">
+v<sub>h</sub>(S) = α·(1/|S|²) Σ<sub>j,k∈S</sub> aff(j,k) + β·tail(S) + γ·div(S) <span class="c">— aff = pairwise affinity (co-occurrence or embedding similarity)</span>
+</div>
+<p><b>Hyperedge weight</b> (aggregated Shapley credit of the group):</p>
+<div class="formula">
+β<sub>h</sub> = σ( (1/|h|) Σ<sub>j∈h</sub> φ̂<sub>j</sub>(h) / τ<sub>h</sub> ) &nbsp;&nbsp;⇒&nbsp;&nbsp;
+e<sub>v</sub><sup>(k+1)</sup> = Σ<sub>h∋v</sub> (β<sub>h</sub>/√(D<sub>v</sub>D<sub>h</sub>)) · Σ<sub>v′∈h</sub> (1/√D<sub>h</sub>) e<sub>v′</sub><sup>(k)</sup>
+</div>
+<p class="note">β<sub>h</sub> ≡ 1 recovers standard hypergraph CF (DHCN/HCCF-style) — the ablation that separates &ldquo;hypergraph helps&rdquo; from &ldquo;Shapley-weighted hypergraph helps&rdquo;, which is the actual novelty over DyHuCoG at this level.</p>
+</div>
+
+<h3>2.3&nbsp;&nbsp;<span class="tag t-g3">G3</span>Data-level game (training-set curation)</h3>
+<div class="card">
+<p><b>Game.</b> Players = training interactions; v(S) = ranking metric of a model trained on S, evaluated on a <i>temporal</i> validation set (v<sup>ndcg</sup> above). Estimated with <b>TMC-Shapley</b> (truncated MC) or the hierarchical HCDV method. Sample weight:</p>
+<div class="formula">
+γ<sub>ui</sub> = 1 + κ · rank(φ̂<sub>ui</sub>) &nbsp;∈ [1, 1+κ] <span class="c">— reweights the loss; optionally prune the bottom p% (e.g. p=5)</span>
+</div>
+</div>
+
+<h2>3&nbsp;&nbsp;Loss functions</h2>
+<div class="card">
+<div class="formula">
+ℒ<sub>rank</sub> = −(1/|B|) Σ<sub>(u,i)∈B</sub> [ log σ(s<sub>ui</sub>) + Σ<sub>j∈Neg(u)</sub> w<sub>j</sub> log(1 − σ(s<sub>uj</sub>)) ] <span class="c">— gBCE, 256 negatives, sample weights w<sub>j</sub> ∝ γ (G3)</span><br>
+ℒ<sub>cl</sub> = −log [ exp(sim(ē<sub>u</sub>, e<sup>g</sup><sub>u</sub>)/τ) / Σ<sub>u′</sub> exp(sim(ē<sub>u</sub>, ē<sub>u′</sub>)/τ) ] <span class="c">— InfoNCE, local (Channel A/B) vs global (Channel C, SVD view)</span><br>
+ℒ<sub>game</sub> = ‖ σ(a<sub>ui</sub>) − φ̂̄<sub>ui</sub> ‖² <span class="c">— consistency: learned attention a<sub>ui</sub> ← EMA of φ̂ (stop-grad), <span style="color:#ffd76a">non-stationarity fix</span></span><br>
+ℒ = ℒ<sub>rank</sub> + λ<sub>1</sub>ℒ<sub>cl</sub> + λ<sub>2</sub>ℒ<sub>game</sub> + λ<sub>3</sub>‖Θ‖²
+</div>
+<p class="note">The ℒ<sub>game</sub> term is the &ldquo;consistency loss&rdquo; the review flagged as missing: it makes the model learn to reproduce the Shapley credit end-to-end (so inference needs no game computation), with an EMA target for stability and stop-gradients on φ̂.</p>
+</div>
+
+<h2>4&nbsp;&nbsp;Complexity &amp; feasibility</h2>
+<div class="card">
+<table>
+<tr><th>Game</th><th>Per-refresh cost</th><th>Typical numbers</th><th class="num">Budget</th></tr>
+<tr><td>G1 (edges)</td><td class="num">O(T · k · d) per user</td><td>T=100 permutations, k=32 coalition, d=64 → ~200K FLOPs/user</td><td class="num">&lt; 20% wall-clock (refresh every 5 epochs)</td></tr>
+<tr><td>G2 (hyperedges)</td><td class="num">O(T · |h| · d) per hyperedge</td><td>|h| ≤ 50; #hyperedges ≪ #edges</td><td class="num">negligible</td></tr>
+<tr><td>G3 (data)</td><td class="num">TMC-Shapley: O(T′·n·train)</td><td>Offline every 10 epochs; HCDV variant 10–100&times; faster</td><td class="num">offline</td></tr>
+</table>
+<ul>
+<li><b>Restricted coalitions:</b> |N(u)| capped at k=32 via stratified sampling (top-recent + random) — bounds G1 exactly.</li>
+<li><b>Variance control:</b> report φ̂ std over 5 runs; use antithetic permutation pairing (pair π with reverse(π)) or Owen/stratified sampling if std &gt; 0.1·mean.</li>
+<li><b>Efficiency restoration:</b> after truncation, renormalize so Σφ̂ = v(N) (the code does this) — preserves the efficiency axiom approximately.</li>
+<li><b>Non-stationarity:</b> φ̂ refreshed every 5 epochs; EMA (rate 0.9) + stop-grad in ℒ<sub>game</sub>.</li>
+</ul>
+</div>
+
+<h2>5&nbsp;&nbsp;PyTorch pseudo-code</h2>
+<div class="card">
+<h3>5.1&nbsp;&nbsp;MC-Shapley edge weighting (G1)</h3>
+<pre class="code"># ============================================================
+# G1 — MC Shapley edge weighting (restricted coalitions)
+# ============================================================
+
+def value_fn_consistency(s_emb, e_full):
+    """v(S): negative L2 between the coalition-built profile and the
+    full-model embedding (stop-grad). Constant offsets cancel in
+    marginals, so v(empty)=0 w.l.o.g."""
+    return -((s_emb - e_full.detach()).pow(2).sum(-1))
+
+@torch.no_grad()
+def mc_shapley_edge(e_u, e_nbrs, T=100, max_k=32, eps=1e-3):
+    """Players = neighbors of user u (<= max_k). Returns phi (k,).
+
+    phi[i] = avg over T permutations of the marginal contribution
+    of neighbor i to the coalition that precedes it (MC-Shapley),
+    with truncation once marginals vanish.
+    """
+    k = e_nbrs.shape[0]
+    if k > max_k:                          # restricted coalition
+        idx = torch.randperm(k)[:max_k]
+        e_nbrs, k = e_nbrs[idx], max_k
+
+    phi = torch.zeros(k, device=e_nbrs.device)
+    for _ in range(T):
+        order = torch.randperm(k)
+        s = torch.zeros_like(e_u)          # coalition accumulator
+        for pos, i in enumerate(order):
+            v_before = value_fn_consistency(s, e_u)
+            s = s + e_nbrs[i]              # add player i
+            v_after  = value_fn_consistency(s, e_u)
+            phi[i]  += (v_after - v_before) / T
+            if pos > k // 2 and abs(v_after - v_before) < eps:
+                break                      # truncation
+    # restore efficiency: sum(phi) = v(full coalition) = -||sum(e_i) - e_u||^2
+    phi *= value_fn_consistency(e_nbrs.sum(0), e_u) / (phi.sum() + 1e-9)
+    return phi
+
+def edge_weights(phi, deg_u, deg_i, lam=0.5, tau=0.1):
+    """w_ui = LightGCN weight x (1-lam + lam*sigmoid(phi/tau)).
+    lam=0  ->  exactly LightGCN (recovery property, see Prop. 1)."""
+    base = 1.0 / torch.sqrt(deg_u * deg_i)
+    return base * (1.0 - lam + lam * torch.sigmoid(phi / tau))
+</pre>
+<h3>5.2&nbsp;&nbsp;CoopGCN training loop</h3>
+<pre class="code"># ============================================================
+# CoopGCN — training loop (channels A + B + C, three games)
+# ============================================================
+
+class CoopGCN(nn.Module):
+    def __init__(self, n_user, n_item, dim=64, L=3,
+                 lam=0.5, tau=0.1, period=5, ema_rate=0.9):
+        super().__init__()
+        self.E_u = nn.Embedding(n_user, dim)   # user embeddings
+        self.E_i = nn.Embedding(n_item, dim)   # item embeddings
+        self.attn = nn.Linear(2 * dim, 1)      # learned attention (for L_game)
+        self.lam, self.tau = lam, tau
+        self.period, self.ema_rate = period, ema_rate
+        self.phi_bar = None                    # EMA of Shapley weights
+
+    def propagate(self, w_edges, w_hyper):
+        # Channel A: norm-aware LightGCN w/ Shapley edge weights (G1)
+        # Channel B: hypergraph GCN w/ Shapley hyperedge weights (G2)
+        # returns pooled embeddings e_u, e_i (dim,)
+        ...
+
+    def forward(self, u, i, neg, w_edges, w_hyper):
+        e_u, e_i = self.propagate(w_edges, w_hyper)
+        return (e_u[u] * e_i[i]).sum(-1), (e_u[u] * e_i[neg]).sum(-1)
+
+# --- refresh Shapley weights every `period` epochs, with EMA ---
+def refresh_shapley(model, graph, hypergraph):
+    phi_edges = {}
+    for u, nbrs in graph.neighbors.items():
+        e_u   = model.E_u(torch.tensor(u))
+        e_nbrs = model.E_i(torch.tensor(nbrs))
+        phi_edges[u] = mc_shapley_edge(e_u, e_nbrs)          # G1
+    phi_hyper = mc_shapley_hyper(model, hypergraph)           # G2
+    if model.phi_bar is None:
+        model.phi_bar = phi_edges
+    else:
+        model.phi_bar = {u: model.ema_rate * model.phi_bar[u]
+                            + (1 - model.ema_rate) * phi_edges[u]
+                         for u in phi_edges}                  # non-stationary fix
+    w_edges = {u: edge_weights(model.phi_bar[u], deg_u[u], deg_i)
+               for u in model.phi_bar}
+    return w_edges, phi_hyper
+
+# --- one epoch ---
+for epoch in range(EPOCHS):
+    if epoch % model.period == 0:
+        w_edges, w_hyper = refresh_shapley(model, graph, hypergraph)
+
+    for batch in loader:
+        s_pos, s_neg = model(batch.u, batch.i, batch.neg, w_edges, w_hyper)
+        L_rank = gbce(s_pos, s_neg, n_neg=256)                # W7 fix
+        L_cl   = info_nce(model.E_u.weight, e_svd)            # Channel C
+        a = torch.sigmoid(model.attn(torch.cat([e_u, e_i], -1)))
+        L_game = F.mse_loss(a, model.phi_bar[u, i].detach())  # consistency
+        L = L_rank + lam1 * L_cl + lam2 * L_game + lam3 * reg(model)
+        L.backward(); opt.step()
+
+# --- G3: data valuation (offline, every M epochs) ---
+if epoch % 10 == 0:
+    gamma = tmc_shapley_data(model, train_loader, val_loader) # TMC-Shapley
+    apply_sample_weights(loader, gamma)                       # reweight / prune
+</pre>
+<p class="note">Full code would also include the hypergraph channel forward (message in §2.2) and the SVD view of Channel C (LightGCL recipe: truncated SVD of the normalized adjacency, rank q=5, precomputed once).</p>
+</div>
+
+<h2>6&nbsp;&nbsp;The experiment matrix (harness design)</h2>
+<div class="card">
+<h3>6.1&nbsp;&nbsp;Datasets &amp; hyperedge construction (leakage-safe: build from train only)</h3>
+<table>
+<tr><th>Dataset</th><th>Hyperedges</th><th>Construction rule</th><th>Why it fits</th></tr>
+<tr><td>Yelp2018</td><td>Business categories</td><td>Category membership per business</td><td>Natural group signal; strong category structure</td></tr>
+<tr><td>Amazon-Book</td><td>Book categories / genres</td><td>Category membership</td><td>Sparse — group signal matters most</td></tr>
+<tr><td>Gowalla</td><td>Spatial clusters</td><td>k-means on check-in coordinates (k≈500)</td><td>Geo groups proxy social circles</td></tr>
+<tr><td>MovieLens-1M</td><td>Genres</td><td>Genre membership</td><td>Dense control; timestamps enable clean temporal split</td></tr>
+<tr><td>LastFM</td><td>Tags</td><td>Item tags</td><td>Tag co-occurrence as hyperedges</td></tr>
+</table>
+<h3>6.2&nbsp;&nbsp;Leakage audit (Step 0.5 — the review&rsquo;s addition)</h3>
+<p>For every dataset, train LightGCN under <b>(a) random split</b> (classic protocol) and <b>(b) global temporal split</b>. Report ΔR@20 — the inflation factor. All CoopGCN results are reported under (b); (a) is reported only as a labeled diagnostic. This is the CUISINART (KDD&rsquo;24) lesson, baked into the protocol.</p>
+<h3>6.3&nbsp;&nbsp;Configurations (each is a separate ablation row)</h3>
+<table>
+<tr><th>#</th><th>Config</th><th>Purpose</th></tr>
+<tr><td>C0</td><td>LightGCN (vanilla, tuned hard)</td><td>Floor; baseline-tuning symmetry check</td></tr>
+<tr><td>C1</td><td><b>Baseline+</b> = LightGCN++ norms + gBCE/256 + LightGCL view (no game)</td><td>The &ldquo;no-game CoopGCN&rdquo; — strong reference; every game module must beat its ablation against C1</td></tr>
+<tr><td>C2</td><td>C1 + G1 (Shapley edges)</td><td>Main novelty claim</td></tr>
+<tr><td>C3</td><td>C1 + G2 (Shapley hyperedges)</td><td>DyHuCoG-diff ablation (also vs β≡1 hypergraph)</td></tr>
+<tr><td>C4</td><td>C1 + G1 + G2</td><td>Joint effect</td></tr>
+<tr><td>C5</td><td>C1 + G1 + G2 + G3</td><td>Data valuation adds</td></tr>
+<tr><td>C6</td><td><b>CoopGCN full</b> (C5 + ℒ<sub>game</sub> consistency)</td><td>Submission model</td></tr>
+</table>
+<h3>6.4&nbsp;&nbsp;THE ablation (the review&rsquo;s make-or-break): φ̂ vs attention</h3>
+<table>
+<tr><th>Weighting for Channel A</th><th>Question answered</th></tr>
+<tr><td>Uniform (LightGCN)</td><td>Floor</td></tr>
+<tr><td>Degree-norm only (LightGCN default)</td><td>Topological baseline</td></tr>
+<tr><td>LightGCN++ scalar (learned α,β,γ)</td><td>Learned, non-game weighting</td></tr>
+<tr><td>GAT-style attention</td><td>Learned, per-neighbor attention</td></tr>
+<tr><td><b>φ̂ (Shapley, G1)</b></td><td>Game-theoretic weighting</td></tr>
+</table>
+<p class="note">Verdict metrics: R@20, N@20, <b>TR@20 (tail recall)</b>, Coverage@20, Gini, popularity gap, diversity; plus a <b>noise-robustness test</b> (inject 5/10/20% random interactions, measure degradation — G3&rsquo;s payoff). 3 seeds, paired t-test, not just means. If φ̂ wins NDCG — great. If it wins only tail/robustness, that is still a publishable story: <i>trustworthy, robust graph recs via axiomatic credit</i>.</p>
+</div>
+
+<h2>7&nbsp;&nbsp;The review&rsquo;s 8 open questions — answered</h2>
+<div class="card">
+<table>
+<tr><th>Review question</th><th>Answer</th></tr>
+<tr><td>1. Exact v(S) for G1/G2 with math?</td><td>§2.1–2.2: v<sup>cons</sup> (default G1), v<sup>pref</sup> (default G2, with tail+diversity terms), v<sup>ndcg</sup> (offline G3). The tail/diversity terms block popularity free-riding.</td></tr>
+<tr><td>2. Coalition restriction strategy for hubs (100+ neighbors)?</td><td>Cap at k=32: top-most-recent + stratified random (diversity of interaction types). Sensitivity analysis over k ∈ {16, 32, 64}.</td></tr>
+<tr><td>3. MC estimator variance?</td><td>Report std over 5 runs; antithetic pairing; T=100–200; Owen/stratified if needed. Truncation ε=1e-3 with renormalization.</td></tr>
+<tr><td>4. Axiom preservation under approximation?</td><td>Efficiency restored by renormalization (Σφ̂ = v(N)); symmetry holds by MC construction; dummy players get ≈0 φ̂ (their marginals vanish).</td></tr>
+<tr><td>5. Symmetry for duplicate interactions (same item, different time)?</td><td>Symmetry is desirable only for truly interchangeable players. Timestamps break symmetry: interactions are dated, v<sup>pref</sup> includes recency weight; duplicates become distinct players with distinct φ̂.</td></tr>
+<tr><td>6. Training stability (φ̂ recomputed → non-stationary targets)?</td><td>EMA of φ̂ (rate 0.9) as the target of ℒ<sub>game</sub>, stop-grad on the target; refresh every 5 epochs, not every step.</td></tr>
+<tr><td>7. Cold-start G5 — how are side features players?</td><td>Moved to future work (§8). Sketch: feature groups (categories, text clusters) as players of a feature game; φ̂ initializes new-node embeddings. Not in v1.</td></tr>
+<tr><td>8. Complexity budget formal?</td><td>O(T·k·d) per user refresh + O(E·L·d) propagation; measured wall-clock % per component reported in every table. Budget &lt;20% or the design changes.</td></tr>
+</table>
+</div>
+
+<h2>8&nbsp;&nbsp;Scope control (the review&rsquo;s recommendation, adopted)</h2>
+<div class="card">
+<p><b>Core paper (v1):</b> G1 + G2 + G3, Channels A+B+C, ℒ<sub>game</sub>, leakage-free protocol, the φ̂-vs-attention ablation, robustness study.</p>
+<p><b>Future work (discussion section only):</b> G4 popularity-bias correction as a standalone game, G5 cold-start feature games, G6 multi-behavior fusion, G7 Shapley-driven negative sampling, G8 explanation outputs, temporal/sequential extension (SASRec/HSTU-class backbone).</p>
+<div class="goodbox"><b>Publishability bar (from the review):</b> if G1+G2 beat uniform AND learned attention on ≥3 datasets under temporal splits on tail/robustness metrics → SIGIR&rsquo;27 / RecSys&rsquo;27 material. If only G2 works → incremental over DyHuCoG; reposition as &ldquo;edge+data-level Shapley&rdquo; or don&rsquo;t submit.</div>
+</div>
+
+<h2>9&nbsp;&nbsp;Sources</h2>
+<div class="card src">
+<ol>
+<li>Shapley (1953) — <i>A Value for n-Person Games</i></li>
+<li>Owen (2014) — Monte-Carlo Shapley estimation; <a href="https://arxiv.org/abs/1904.02868">Ghorbani &amp; Zou (ICML&rsquo;19)</a> Data-Shapley; <a href="https://arxiv.org/abs/1907.02846">Jia et al. (2019)</a> TMC-Shapley; <a href="https://arxiv.org/html/2512.19363">HCDV (2026)</a> hierarchical valuation</li>
+<li><a href="https://oaji.net/articles/2025/3603-1768748355.pdf">DyHuCoG (2025)</a> — preference-aware MC Shapley hyperedge weights</li>
+<li><a href="http://dmlab.kaist.ac.kr/~kijungs/papers/lightgcnppRecSys2024.pdf">LightGCN++ (RecSys&rsquo;24)</a> — norm scaling &amp; neighbor weighting</li>
+<li><a href="https://arxiv.org/abs/2302.08191">LightGCL (ICLR&rsquo;23)</a> — SVD global contrastive view</li>
+<li><a href="https://arxiv.org/abs/2308.09756">gSASRec (RecSys&rsquo;23)</a> — gBCE, overconfidence fix</li>
+<li><a href="https://arxiv.org/abs/2308.03953">CUISINART (KDD&rsquo;24)</a> — evaluation leakage in graph CF</li>
+<li><a href="https://arxiv.org/abs/2204.12200">HCCF (SIGIR&rsquo;22)</a>, <a href="https://arxiv.org/abs/2012.06852">DHCN (AAAI&rsquo;21)</a> — hypergraph CF propagation</li>
+<li><a href="https://arxiv.org/pdf/2506.13900">Beyond Shapley Values (2025)</a> — value-function design is the real decision</li>
+<li><a href="https://dl.acm.org/doi/10.1145/3523227.3546767">Are We Really Making Much Progress? (RecSys&rsquo;22)</a> — baseline tuning symmetry</li>
+</ol>
+</div>
+
+<div class="foot">
+CoopGCN project docs: <i>lightgcn_shapley_analysis.html</i> (analysis &amp; blueprint) → this file (formalization) → experiment harness (next) &middot; Compiled Aug 2026.
+</div>
+
+</div>
+</body>
+</html>
