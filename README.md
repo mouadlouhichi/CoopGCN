@@ -63,10 +63,10 @@ CoopGCN/
 │   └── test_suite.py                      # Full module, forward pass, and loss coverage tests
 ├── notebooks/
 │   └── coopgcn_run_all.ipynb              # Standalone Executable Notebook for Mac M4 Pro 48GB
-├── review/                                # Multi-Role Agent Workflow Audit Trail
+├── review/                                # Engineering Verification & Audit Log
 │   ├── ISSUE_REGISTER.md                  # Complete log of issues and verified resolutions
-│   ├── REVIEW_REPORT_ROUND1.md            # Senior Reviewer Round 1 Audit
-│   ├── REVIEW_REPORT_ROUND2.md            # Senior Reviewer Round 2 Re-Audit
+│   ├── REVIEW_REPORT_ROUND1.md            # Round 1 Technical Audit Report
+│   ├── REVIEW_REPORT_ROUND2.md            # Round 2 Technical Re-Audit Report
 │   └── FINAL_REVIEW_VERDICT.md            # Official Verification & Sign-off
 └── specs/                                 # Academic Specification Suite
     ├── CoopGCN_Paper_Structure.md         # Full Academic Research Paper Blueprint
