@@ -257,7 +257,7 @@ class CoopGCN(nn.Module):
         num_items,
         embed_dim=64,
         num_layers=3,
-        lambda_param=0.0,
+        lambda_param=0.03,
         num_hyperedges=250,
     ):
         super().__init__()

@@ -19,8 +19,8 @@ class CoopGCNLoss(nn.Module):
 
     def __init__(
         self,
-        lambda_cl=0.001,
-        lambda_game=0.0,
+        lambda_cl=0.005,
+        lambda_game=0.01,
         lambda_reg=1e-4,
         temperature_cl=0.20,
         temperature_neg=0.50,

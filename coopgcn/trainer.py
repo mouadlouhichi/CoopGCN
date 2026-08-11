@@ -7,6 +7,7 @@ Includes automatic checkpointing and resumption to prevent re-running completed 
 
 import os
 import time
+import copy
 import numpy as np
 import torch
 import torch.optim as optim
@@ -257,6 +258,7 @@ class CoopGCNTrainer:
                     return self.history
 
         best_val_ndcg = 0.0
+        best_model_state = copy.deepcopy(self.model.state_dict())
         start_time = time.time()
 
         if hasattr(self.model, "svd_view"):
@@ -296,6 +298,7 @@ class CoopGCNTrainer:
 
             if val_metrics["NDCG@20"] > best_val_ndcg:
                 best_val_ndcg = val_metrics["NDCG@20"]
+                best_model_state = copy.deepcopy(self.model.state_dict())
                 if ckpt_path:
                     best_path = ckpt_path.replace("_final.pt", "_best.pt")
                     self.save_checkpoint(best_path)
@@ -310,16 +313,15 @@ class CoopGCNTrainer:
                     f"Time: {ep_dur:.2f}s"
                 )
 
+        # Restore best validation model weights in memory for evaluation
+        self.model.load_state_dict(best_model_state)
+        if verbose:
+            print("🏆 Restored best validation epoch weights in memory for test evaluation!")
+
         # Save final completed checkpoint
         if ckpt_path:
             self.save_checkpoint(ckpt_path)
             if verbose:
                 print(f"📦 Checkpoint saved: {ckpt_path}")
-            # Automatically restore best validation checkpoint for evaluation
-            best_path = ckpt_path.replace("_final.pt", "_best.pt")
-            if os.path.exists(best_path):
-                self.load_checkpoint(best_path)
-                if verbose:
-                    print(f"🏆 Restored best validation checkpoint ({best_path}) for test evaluation!")
 
         return self.history
