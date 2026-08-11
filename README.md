@@ -11,7 +11,8 @@ This is the official PyTorch implementation and academic specification repositor
 > *Mouad Louhichi, et al. (2026)*  
 > **Paper Blueprint:** [`specs/CoopGCN_Paper_Structure.md`](specs/CoopGCN_Paper_Structure.md)  
 > **Technical Specification:** [`specs/CoopGCN_Spec.md`](specs/CoopGCN_Spec.md)  
-> **Implementation Specification:** [`specs/CoopGCN_Implementation_Spec.md`](specs/CoopGCN_Implementation_Spec.md)
+> **Implementation Specification:** [`specs/CoopGCN_Implementation_Spec.md`](specs/CoopGCN_Implementation_Spec.md)  
+> **8-Year Recommender Leaderboard (2018–2026):** [`specs/8-Year-Recommender-Leaderboard-Recall-NDCG.md`](specs/8-Year-Recommender-Leaderboard-Recall-NDCG.md)
 
 ---
 
