@@ -2,7 +2,7 @@
 
 [![PyTorch](https://img.shields.io/badge/PyTorch-%E2%89%A52.1.0-EE4C2C.svg?style=flat-square&logo=pytorch)](https://pytorch.org/)
 [![Python](https://img.shields.io/badge/Python-%E2%89%A53.10-3776AB.svg?style=flat-square&logo=python)](https://www.python.org/)
-[![Apple Silicon](https://img.shields.io/badge/Apple%20Metal-MPS%20Optimized-000000.svg?style=flat-square&logo=apple)](https://developer.apple.com/metal/)
+[![Cross-Platform](https://img.shields.io/badge/Cross--Platform-MPS--CUDA--CPU-000000.svg?style=flat-square&logo=pytorch)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Target: RecSys / KDD](https://img.shields.io/badge/Venue-RecSys%20%2F%20KDD-4B0082.svg?style=flat-square)](#)
 
@@ -32,7 +32,7 @@ While linear Graph Convolutional Networks—most notably **LightGCN**—have bec
 * 🚀 **Empirical Benchmark Evaluation:** All 5 Target Benchmark Datasets (`ML-100k`, `ML-1M`, `Gowalla`, `Yelp2018`, `Amazon-Book`) are downloaded directly from official servers (GroupLens / LightGCN official repository). All reported numbers, ablation tables, and robustness curves are computed from live empirical model evaluation.
 * ⚡ **Zero-Overhead Inference ($\mathcal{L}_{\text{game}}$):** Trains learnable attention weights $a_{ui}$ to target an Exponential Moving Average (EMA) of historical Monte-Carlo Shapley values via $\mathcal{L}_{\text{game}} = \|\sigma(a_{ui}) - \text{sg}(\bar{\hat{\phi}}_{ui})\|^2$. During inference, Shapley sampling is bypassed entirely, achieving zero game-theoretic serving latency.
 * 🛡️ **Strict Evaluation Leakage Safety (Step 0.5):** All datasets are partitioned via a global temporal split (**70% Train / 10% Validation / 20% Test**). Item degrees and hyperedge coalitions are computed strictly from training edges, verified via automated assertions (`audit_leakage()`).
-* 🍏 **Apple Silicon Mac M4 Pro (Metal MPS) Optimized:** Full support for `torch.device('mps')` with memory-safe restricted coalitions ($|S| \le 32, T=25$ permutations) keeping offline training overhead below **20%**.
+* 🍏 **Universal PyTorch Hardware Acceleration (NVIDIA CUDA / Apple Metal MPS / CPU):** Full support for `torch.device('mps')` with memory-safe restricted coalitions ($|S| \le 32, T=25$ permutations) keeping offline training overhead below **20%**.
 * 🌐 **Universal Cross-Platform Execution (macOS / Linux / Windows / Colab):** Built with OS-independent path handling and automatic device detection (`MPS`, `CUDA`, or `CPU`). Designed for seamless adoption into the PyTorch ecosystem (modeled after `LightGCN-PyTorch` and `PyTorch Geometric`).
 * 📦 **Automatic Checkpoint Resumption (`checkpoints/`):** Both `notebooks/coopgcn_run_all.ipynb` and `scripts/run_all.py` automatically save model weights and training histories to `./checkpoints/`. If your kernel is interrupted or an error occurs, re-running "Run All" instantly loads completed models and only trains remaining models. Use `--no-resume` in CLI or set `resume=False` to force a fresh retrain.
 
@@ -43,7 +43,7 @@ While linear Graph Convolutional Networks—most notably **LightGCN**—have bec
 ```
 CoopGCN/
 ├── README.md                              # Main Overview, Benchmark Table & BibTeX Citation
-├── LOCAL_RUN.md                           # Local Mac M4 Pro / Linux Execution Guide
+├── LOCAL_RUN.md                           # Local Execution Guide (macOS / Linux / Windows / Colab)
 ├── run_local.sh                           # 1-Click Automated Runner & Syntax Checker
 ├── requirements.txt                       # Top-level dependencies
 ├── LICENSE                                # MIT License
@@ -63,7 +63,7 @@ CoopGCN/
 │   ├── test_propositions.py               # Asserts 4 Shapley Axioms, Proposition 1 & 2, Step 0.5 Leakage
 │   └── test_suite.py                      # Full module, forward pass, and loss coverage tests
 ├── notebooks/
-│   └── coopgcn_run_all.ipynb              # Standalone Executable Notebook for Mac M4 Pro 48GB
+│   └── coopgcn_run_all.ipynb              # Standalone Executable PyTorch Benchmark Notebook (Universal OS)
 ├── review/                                # Engineering Verification & Audit Log
 │   ├── ISSUE_REGISTER.md                  # Complete log of issues and verified resolutions
 │   ├── REVIEW_REPORT_ROUND1.md            # Round 1 Technical Audit Report
@@ -77,7 +77,7 @@ CoopGCN/
 
 ---
 
-## Quickstart (Apple Silicon Mac M4 Pro / Linux GPU)
+## Quickstart (macOS / Linux / Windows / Colab)
 
 ### 1. Installation
 Clone the repository and install dependencies:

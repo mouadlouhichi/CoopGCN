@@ -10,7 +10,7 @@ This directory contains the official PyTorch package for **CoopGCN**, along with
 - `shapley_data.py`: Truncated Monte-Carlo Data-Shapley valuation ($\mathbf{G_3}$) and bottom-5% noise pruning.
 - `losses.py`: Multi-task objective (`CoopGCNLoss`) with zero-overhead inference consistency regularization ($\mathcal{L}_{\text{game}}$).
 - `evaluator.py`: Multi-dimensional metrics (`NDCG@20`, `Recall@20`, `TR@20`, `Coverage@20`, `Gini`, Noise Immunity).
-- `trainer.py`: Amortized training schedule optimized for Apple Silicon Mac M4 Pro (`torch.device('mps')`).
+- `trainer.py`: Amortized training schedule optimized for universal hardware acceleration (`MPS`, `CUDA`, or `CPU`).
 - `visualization.py`: Generates publication academic figures (`./figures/`).
 
 ---
@@ -34,7 +34,7 @@ model = CoopGCN(
     num_hyperedges=max(10, len(dataset.hyperedges))
 )
 
-# 3. Train on Apple Silicon Metal MPS or GPU/CPU
+# 3. Train universally across GPU (CUDA/MPS) or CPU
 trainer = CoopGCNTrainer(
     model=model,
     dataset=dataset,

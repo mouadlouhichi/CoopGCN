@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# CoopGCN — Automated Local Benchmark & Test Runner (Mac M4 Pro / Linux)
+# CoopGCN — Automated Local Benchmark & Test Runner (Universal OS)
 # ==============================================================================
 
 set -e
@@ -39,7 +39,7 @@ if $PYTHON_CMD -c "import torch" &> /dev/null; then
     echo "🏆 ALL LOCAL EXECUTION CHECKS COMPLETED SUCCESSFULLY!"
 else
     echo "ℹ️ PyTorch is not yet installed in this Python environment."
-    echo "   To run tests and benchmark on your Mac M4 Pro, run:"
+    echo "   To run tests and benchmark on your local machine, run:"
     echo "     pip install -r requirements.txt"
     echo "     jupyter notebook notebooks/coopgcn_run_all.ipynb"
     echo "✅ Codebase syntax and directory verification complete!"

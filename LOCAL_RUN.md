@@ -1,4 +1,4 @@
-# CoopGCN — Local Benchmark Execution Guide (Mac M4 Pro 48GB / Linux GPU)
+# CoopGCN — Local Benchmark Execution Guide (macOS / Linux / Windows / Colab)
 
 This guide explains how to run the automated tests, train all five collaborative filtering baselines, run **THE Central Make-or-Break Ablation**, evaluate adversarial noise immunity, and generate publication LaTeX tables and figures on your local machine.
 
@@ -38,7 +38,7 @@ python3 tests/test_suite.py
 
 ---
 
-## 3. Running the Interactive Jupyter Notebook (Mac M4 Pro Optimized)
+## 3. Running the Interactive Jupyter Notebook (Universal OS / Hardware)
 
 To run the complete interactive benchmark with inline figures and tables:
 ```bash

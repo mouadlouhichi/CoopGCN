@@ -1,6 +1,6 @@
 # CoopGCN — Empirical Results & Benchmark Summary
 
-**Target Environment:** Apple Silicon Mac M4 Pro (48GB RAM, Metal MPS GPU Acceleration)  
+**Target Environment:** Universal PyTorch Execution (macOS Metal MPS / Linux CUDA / Windows / CPU)  
 **Evaluation Protocol:** Strict Global Temporal Splits (70% Train / 10% Validation / 20% Test) + Step 0.5 Data Leakage Audit  
 
 ---

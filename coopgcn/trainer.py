@@ -1,6 +1,6 @@
 """
 Amortized training loop for CoopGCN and baseline models.
-Handles MPS (Mac Apple Silicon Metal), CUDA, and CPU devices.
+Handles universal PyTorch devices (MPS, CUDA, CPU) across any operating system.
 Executes periodic Shapley EMA refresh (P=10 epochs) and Data-Shapley curation (M=20 epochs).
 Includes automatic checkpointing and resumption to prevent re-running completed models.
 """
@@ -18,7 +18,7 @@ from .shapley_data import TMCShapleyDataValuator
 class CoopGCNTrainer:
     """
     Trainer class for CoopGCN and baseline recommendation models.
-    Fully compatible with Apple Silicon Mac M4 Pro Metal MPS GPU acceleration.
+    Fully compatible across macOS Metal MPS, Linux/Windows NVIDIA CUDA, and CPU environments.
     Supports automatic checkpoint saving/loading to resume after interruptions.
     """
 
