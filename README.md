@@ -12,7 +12,8 @@ This is the official PyTorch implementation and academic specification repositor
 > **Paper Blueprint:** [`specs/CoopGCN_Paper_Structure.md`](specs/CoopGCN_Paper_Structure.md)  
 > **Technical Specification:** [`specs/CoopGCN_Spec.md`](specs/CoopGCN_Spec.md)  
 > **Implementation Specification:** [`specs/CoopGCN_Implementation_Spec.md`](specs/CoopGCN_Implementation_Spec.md)  
-> **8-Year Recommender Leaderboard (2018–2026):** [`specs/8-Year-Recommender-Leaderboard-Recall-NDCG.md`](specs/8-Year-Recommender-Leaderboard-Recall-NDCG.md)
+> **8-Year Recommender Leaderboard (2018–2026):** [`specs/8-Year-Recommender-Leaderboard-Recall-NDCG.md`](specs/8-Year-Recommender-Leaderboard-Recall-NDCG.md)  
+> **Empirical Review Theme Analysis (ML-100k, ML-1M, Gowalla):** [`specs/CoopGCN_Empirical_Review_Theme.md`](specs/CoopGCN_Empirical_Review_Theme.md)
 
 ---
 
@@ -74,7 +75,9 @@ CoopGCN/
 └── specs/                                 # Academic Specification Suite
     ├── CoopGCN_Paper_Structure.md         # Full Academic Research Paper Blueprint
     ├── CoopGCN_Spec.md                    # Enhanced Technical Specification & Failure Mode Taxonomy
-    └── CoopGCN_Implementation_Spec.md     # Formalization, PyTorch Math & Experiment Matrix
+    ├── CoopGCN_Implementation_Spec.md     # Formalization, PyTorch Math & Experiment Matrix
+    ├── CoopGCN_Empirical_Review_Theme.md  # Cross-Dataset Empirical Review Theme Analysis
+    └── 8-Year-Recommender-Leaderboard-Recall-NDCG.md # 8-Year Recommender Leaderboard (2018–2026)
 ```
 
 ---
