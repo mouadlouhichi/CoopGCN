@@ -1,8 +1,8 @@
 """
 CLI Automation script for running the complete CoopGCN benchmark across target datasets,
-including automated data download & caching, head-to-head baseline training across the 8-model canonical suite
-(MF, NCF, LightGCN, RecDCL, HCCF, HPCF, DyHuCoG, and CoopGCN),
-THE Central Make-or-Break Ablation, the 10-Row Component Ablation Study,
+including automated data download & caching, head-to-head baseline training across the 10-model canonical suite
+(MF, NCF, LightGCN, LightGCN++, GAT-CF, RecDCL, HCCF, HPCF, DyHuCoG, and CoopGCN),
+THE Central Make-or-Break Ablation, the Component Ablation Study,
 adversarial edge noise immunity, and generating publication figures and LaTeX tables.
 """
 
@@ -48,7 +48,7 @@ def run_benchmark(
     os.makedirs(ckpt_dir, exist_ok=True)
 
     device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🚀 Running Complete CoopGCN 8-Model Benchmark on device: [{device}] (Resume={resume})")
+    print(f"🚀 Running Complete CoopGCN 10-Model Benchmark on device: [{device}] (Resume={resume})")
 
     all_dataset_results = {}
     primary_dataset = None
@@ -67,12 +67,14 @@ def run_benchmark(
             primary_dataset = dataset
 
         print("\n" + "=" * 70)
-        print(f"EXPERIMENT 2: 8-Model Head-to-Head Baseline Training [{dataset_name}]")
+        print(f"EXPERIMENT 2: 10-Model Head-to-Head Baseline Training [{dataset_name}]")
         print("=" * 70)
         models_to_train = {
             "MF": MF(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=0),
             "NCF": NCF(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=1),
             "LightGCN": LightGCN(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
+            "LightGCN++": LightGCNPlusPlus(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
+            "GAT-CF": GATCF(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
             "RecDCL": RecDCL(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
             "HCCF": HCCF(
                 dataset.num_users,
@@ -169,14 +171,15 @@ def run_benchmark(
     print("\n" + "=" * 70)
     print("EXPERIMENT 3: THE Central Make-or-Break Ablation (Shapley vs. Attention)")
     print("=" * 70)
-    ablation_df = all_dataset_results[target_datasets[0]][
+    ablation_df = all_dataset_results[target_datasets[0]].loc[
+        ["LightGCN", "LightGCN++", "GAT-CF", "DyHuCoG", "CoopGCN (Ours)"],
         ["NDCG@20", "Recall@20", "TR@20", "Coverage@20", "Gini"]
     ].copy()
     print(ablation_df.round(4))
 
-    # Experiment 4: 10-Row Component Ablation Study on Primary Dataset
+    # Experiment 4: Component Ablation Study on Primary Dataset
     print("\n" + "=" * 70)
-    print("EXPERIMENT 4: 10-Row Component Ablation Study (G1, G2, G3, L_game)")
+    print("EXPERIMENT 4: Component Ablation Study (G1, G2, G3, L_game)")
     print("=" * 70)
     ablation_models = {
         "CoopGCN (w/o G1 Edge Shapley)": CoopGCN(
@@ -206,10 +209,12 @@ def run_benchmark(
     }
     component_ablation = {
         "1. LightGCN (Floor)": primary_results_dict["LightGCN"],
-        "2. RecDCL": primary_results_dict["RecDCL"],
-        "3. HCCF": primary_results_dict["HCCF"],
-        "4. HPCF": primary_results_dict["HPCF"],
-        "5. DyHuCoG": primary_results_dict["DyHuCoG"],
+        "2. LightGCN++": primary_results_dict["LightGCN++"],
+        "3. GAT-CF": primary_results_dict["GAT-CF"],
+        "4. RecDCL": primary_results_dict["RecDCL"],
+        "5. HCCF": primary_results_dict["HCCF"],
+        "6. HPCF": primary_results_dict["HPCF"],
+        "7. DyHuCoG": primary_results_dict["DyHuCoG"],
     }
     for name, ab_model in ablation_models.items():
         print(f"---> Training ablation variant: {name} ...")
@@ -245,7 +250,7 @@ def run_benchmark(
             topo_norm=trainer.topo_norm,
         )
         component_ablation[name] = m_val
-    component_ablation["10. Full CoopGCN (Ours)"] = primary_results_dict[
+    component_ablation["11. Full CoopGCN (Ours)"] = primary_results_dict[
         "CoopGCN (Ours)"
     ]
     df_comp = pd.DataFrame(component_ablation).T
@@ -257,7 +262,7 @@ def run_benchmark(
     print("=" * 70)
     noise_ratios = [0.0, 0.05, 0.10, 0.20]
     noise_dict = {}
-    for name in ["LightGCN", "HCCF", "HPCF", "DyHuCoG", "CoopGCN (Ours)"]:
+    for name in ["LightGCN", "GAT-CF", "DyHuCoG", "CoopGCN (Ours)"]:
         curve = {}
         for r in noise_ratios:
             if r == 0.0:
@@ -272,22 +277,12 @@ def run_benchmark(
                         num_layers=2,
                     )
                     loss_fn = None
-                elif name == "HCCF":
-                    n_model = HCCF(
+                elif name == "GAT-CF":
+                    n_model = GATCF(
                         noisy_ds.num_users,
                         noisy_ds.num_items,
                         embed_dim=32,
                         num_layers=2,
-                        num_hyperedges=max(10, len(noisy_ds.hyperedges)),
-                    )
-                    loss_fn = None
-                elif name == "HPCF":
-                    n_model = HPCF(
-                        noisy_ds.num_users,
-                        noisy_ds.num_items,
-                        embed_dim=32,
-                        num_layers=2,
-                        num_hyperedges=max(10, len(noisy_ds.hyperedges)),
                     )
                     loss_fn = None
                 elif name == "DyHuCoG":
