@@ -248,7 +248,9 @@ class CoopGCNTrainer:
 
             # Check if we can resume from existing checkpoint
             if resume and os.path.exists(ckpt_path):
-                success = self.load_checkpoint(ckpt_path)
+                best_path = ckpt_path.replace("_final.pt", "_best.pt")
+                target_ckpt = best_path if os.path.exists(best_path) else ckpt_path
+                success = self.load_checkpoint(target_ckpt)
                 if success:
                     if verbose:
                         print(f"📦 Checkpoint loaded for [{model_name}] on [{dataset_name}]. Skipping re-training!")
@@ -313,5 +315,11 @@ class CoopGCNTrainer:
             self.save_checkpoint(ckpt_path)
             if verbose:
                 print(f"📦 Checkpoint saved: {ckpt_path}")
+            # Automatically restore best validation checkpoint for evaluation
+            best_path = ckpt_path.replace("_final.pt", "_best.pt")
+            if os.path.exists(best_path):
+                self.load_checkpoint(best_path)
+                if verbose:
+                    print(f"🏆 Restored best validation checkpoint ({best_path}) for test evaluation!")
 
         return self.history
