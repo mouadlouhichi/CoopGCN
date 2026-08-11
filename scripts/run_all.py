@@ -10,6 +10,7 @@ import os
 import sys
 import argparse
 import time
+import platform
 import numpy as np
 import pandas as pd
 import torch
@@ -48,7 +49,8 @@ def run_benchmark(
     os.makedirs(ckpt_dir, exist_ok=True)
 
     device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🚀 Running Complete CoopGCN 10-Model Benchmark on device: [{device}] (Resume={resume})")
+    print(f"🖥️  Platform OS: {platform.system()} ({platform.release()}) — {platform.machine()}")
+    print(f"🚀 Running Complete CoopGCN 10-Model Benchmark on device: [{device.upper()}] (Resume={resume})")
 
     all_dataset_results = {}
     primary_dataset = None
