@@ -14,6 +14,13 @@ import torch.optim as optim
 from .evaluator import compute_all_metrics
 from .shapley_data import TMCShapleyDataValuator
 
+try:
+    import torch.serialization
+    if hasattr(torch.serialization, "add_safe_globals"):
+        torch.serialization.add_safe_globals([np.ndarray, np._core.multiarray._reconstruct])
+except Exception:
+    pass
+
 
 class CoopGCNTrainer:
     """
