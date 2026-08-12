@@ -232,7 +232,7 @@ class CoopGCNTrainer:
         self,
         epochs=25,
         verbose=True,
-        checkpoint_dir=None,
+        checkpoint_dir="checkpoints",
         model_name="Model",
         dataset_name=None,
         resume=True,
@@ -243,23 +243,33 @@ class CoopGCNTrainer:
         """
         if dataset_name is None:
             dataset_name = getattr(self.dataset, "dataset_name", "Dataset")
+        if (model_name is None or model_name == "Model") and hasattr(self.model, "__class__"):
+            model_name = self.model.__class__.__name__
 
         # Define checkpoint file path
         ckpt_path = None
         if checkpoint_dir:
-            safe_model = model_name.replace(" ", "_").replace("/", "_")
-            safe_ds = dataset_name.replace(" ", "_").replace("/", "_")
+            safe_model = str(model_name).replace(" ", "_").replace("/", "_")
+            safe_ds = str(dataset_name).replace(" ", "_").replace("/", "_")
             ckpt_path = os.path.join(checkpoint_dir, f"{safe_model}_{safe_ds}_final.pt")
 
-            # Check if we can resume from existing checkpoint
-            if resume and os.path.exists(ckpt_path):
-                best_path = ckpt_path.replace("_final.pt", "_best.pt")
-                target_ckpt = best_path if os.path.exists(best_path) else ckpt_path
-                success = self.load_checkpoint(target_ckpt)
-                if success:
-                    if verbose:
-                        print(f"📦 Checkpoint loaded for [{model_name}] on [{dataset_name}]. Skipping re-training!")
-                    return self.history
+            # Check if we can resume from existing checkpoint (in checkpoint_dir or results/checkpoints)
+            if resume:
+                candidate_paths = [
+                    ckpt_path,
+                    os.path.join("results/checkpoints", f"{safe_model}_{safe_ds}_final.pt"),
+                    os.path.join("checkpoints", f"{safe_model}_{safe_ds}_final.pt"),
+                ]
+                for cand in candidate_paths:
+                    if os.path.exists(cand):
+                        best_path = cand.replace("_final.pt", "_best.pt")
+                        target_ckpt = best_path if os.path.exists(best_path) else cand
+                        success = self.load_checkpoint(target_ckpt)
+                        if success:
+                            if verbose:
+                                print(f"📦 Checkpoint loaded for [{model_name}] on [{dataset_name}] from {cand}. Skipping re-training!")
+                            return self.history
+                        break
 
         best_val_ndcg = 0.0
         best_model_state = copy.deepcopy(self.model.state_dict())
