@@ -105,7 +105,10 @@ class CoopGCNTrainer:
         """
         if not os.path.exists(filepath):
             return False
-        checkpoint = torch.load(filepath, map_location=self.device)
+        try:
+            checkpoint = torch.load(filepath, map_location=self.device, weights_only=False)
+        except TypeError:
+            checkpoint = torch.load(filepath, map_location=self.device)
         self.model.load_state_dict(checkpoint["model_state_dict"])
         if "optimizer_state_dict" in checkpoint:
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
