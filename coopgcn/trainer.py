@@ -153,6 +153,10 @@ class CoopGCNTrainer:
         """
         self.model.train()
         num_train_edges = len(self.dataset.train_edges)
+        effective_batch_size = self.batch_size
+        if num_train_edges > 1_500_000 and effective_batch_size < 8192:
+            effective_batch_size = 8192
+
         perm = torch.randperm(num_train_edges, device=self.device)
 
         total_l = 0.0
@@ -161,8 +165,8 @@ class CoopGCNTrainer:
         total_game = 0.0
         num_batches = 0
 
-        for start_idx in range(0, num_train_edges, self.batch_size):
-            batch_indices = perm[start_idx : start_idx + self.batch_size]
+        for start_idx in range(0, num_train_edges, effective_batch_size):
+            batch_indices = perm[start_idx : start_idx + effective_batch_size]
 
             batch_u_raw = self.edge_index[0, batch_indices]
             batch_pos_raw = self.edge_index[1, batch_indices] - self.dataset.num_users
@@ -304,13 +308,15 @@ class CoopGCNTrainer:
                     self.save_checkpoint(best_path)
 
             if verbose and (epoch % 5 == 0 or epoch == 1 or epoch == epochs):
+                total_elapsed = time.time() - start_time
                 print(
                     f"[Epoch {epoch:2d}/{epochs}] "
                     f"Loss: {l_tot:.4f} (Rank: {l_rank:.4f}, CL: {l_cl:.4f}, Game: {l_game:.4f}) | "
                     f"Val NDCG@20: {val_metrics['NDCG@20']:.4f} | "
                     f"TR@20: {val_metrics['TR@20']:.4f} | "
                     f"Cov@20: {val_metrics['Coverage@20']:.4f} | "
-                    f"Time: {ep_dur:.2f}s"
+                    f"Epoch Time: {ep_dur:.2f}s | "
+                    f"Total Elapsed: {total_elapsed/60.0:.1f}m"
                 )
 
         # Restore best validation model weights in memory for evaluation
