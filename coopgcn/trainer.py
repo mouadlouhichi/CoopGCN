@@ -116,9 +116,12 @@ class CoopGCNTrainer:
             checkpoint = torch.load(filepath, map_location=self.device, weights_only=False)
         except TypeError:
             checkpoint = torch.load(filepath, map_location=self.device)
-        self.model.load_state_dict(checkpoint["model_state_dict"])
+        self.model.load_state_dict(checkpoint["model_state_dict"], strict=False)
         if "optimizer_state_dict" in checkpoint:
-            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            try:
+                self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            except Exception:
+                pass
         if "history" in checkpoint:
             self.history = checkpoint["history"]
         if "sample_weights" in checkpoint:
@@ -340,7 +343,7 @@ class CoopGCNTrainer:
                 )
 
         # Restore best validation model weights in memory for evaluation
-        self.model.load_state_dict(best_model_state)
+        self.model.load_state_dict(best_model_state, strict=False)
         if verbose:
             print("🏆 Restored best validation epoch weights in memory for test evaluation!")
 
