@@ -97,7 +97,9 @@ class CoopGCNTrainer:
         """
         Saves model weights, optimizer state, and training history to disk.
         """
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        dirpath = os.path.dirname(filepath)
+        if dirpath:
+            os.makedirs(dirpath, exist_ok=True)
         checkpoint = {
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
@@ -106,17 +108,58 @@ class CoopGCNTrainer:
         }
         torch.save(checkpoint, filepath)
 
+    def _safe_load_model_state(self, state_dict):
+        """
+        Shape-safe partial state_dict loader.
+        Loads only keys present in the current model with matching tensor shapes.
+        Missing keys (e.g. norm_scale added later) are silently skipped and left
+        at their randomly-initialized values.  Shape-incompatible keys are also
+        skipped with a warning so a single bad tensor never blocks resumption.
+        Returns (missing_keys, skipped_keys) for diagnostic logging.
+        """
+        model_state = self.model.state_dict()
+        compatible = {}
+        skipped = []
+        for k, v in state_dict.items():
+            if k not in model_state:
+                skipped.append(f"{k} [not in model]")
+                continue
+            if tuple(v.shape) != tuple(model_state[k].shape):
+                skipped.append(f"{k} [shape {tuple(v.shape)} vs {tuple(model_state[k].shape)}]")
+                continue
+            compatible[k] = v
+        model_state.update(compatible)
+        self.model.load_state_dict(model_state, strict=False)
+        missing = sorted(set(model_state.keys()) - set(compatible.keys()))
+        return missing, skipped
+
     def load_checkpoint(self, filepath):
         """
         Loads model weights, optimizer state, and training history from disk.
+        Uses shape-safe partial loading so checkpoints saved with an older model
+        architecture (e.g. missing norm_scale) never crash resumption.
         """
         if not os.path.exists(filepath):
             return False
         try:
-            checkpoint = torch.load(filepath, map_location=self.device, weights_only=False)
-        except TypeError:
-            checkpoint = torch.load(filepath, map_location=self.device)
-        self.model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+            try:
+                checkpoint = torch.load(filepath, map_location=self.device, weights_only=False)
+            except TypeError:
+                checkpoint = torch.load(filepath, map_location=self.device)
+        except Exception as e:
+            print(f"⚠️  Failed to deserialise checkpoint {filepath}: {e}")
+            return False
+        try:
+            missing, skipped = self._safe_load_model_state(checkpoint["model_state_dict"])
+            if missing:
+                print(f"ℹ️  Checkpoint {os.path.basename(filepath)}: {len(missing)} key(s) "
+                      f"initialised fresh (not in saved state): {missing[:5]}")
+            if skipped:
+                print(f"⚠️  Checkpoint {os.path.basename(filepath)}: {len(skipped)} key(s) "
+                      f"skipped (shape mismatch or unknown): {skipped[:5]}")
+        except Exception as e:
+            print(f"⚠️  Could not load model state from {filepath}: {e}")
+            return False
         if "optimizer_state_dict" in checkpoint:
             try:
                 self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -125,9 +168,12 @@ class CoopGCNTrainer:
         if "history" in checkpoint:
             self.history = checkpoint["history"]
         if "sample_weights" in checkpoint:
-            self.sample_weights = torch.tensor(
-                checkpoint["sample_weights"], dtype=torch.float32, device=self.device
-            )
+            try:
+                self.sample_weights = torch.tensor(
+                    checkpoint["sample_weights"], dtype=torch.float32, device=self.device
+                )
+            except Exception:
+                pass
         return True
 
     def _refresh_shapley_values(self):
@@ -266,12 +312,16 @@ class CoopGCNTrainer:
             safe_ds = str(dataset_name).replace(" ", "_").replace("/", "_")
             ckpt_path = os.path.join(checkpoint_dir, f"{safe_model}_{safe_ds}_final.pt")
 
-            # Check if we can resume from existing checkpoint (in checkpoint_dir or results/checkpoints)
+            # Check if we can resume from existing checkpoint (in checkpoint_dir or fallback locations)
             if resume:
                 candidate_paths = [
                     ckpt_path,
-                    os.path.join("results/checkpoints", f"{safe_model}_{safe_ds}_final.pt"),
+                    os.path.join("results", "checkpoints", f"{safe_model}_{safe_ds}_final.pt"),
                     os.path.join("checkpoints", f"{safe_model}_{safe_ds}_final.pt"),
+                    # Notebook-relative location: notebooks/checkpoints/ (used when CWD is repo root)
+                    os.path.join("notebooks", "checkpoints", f"{safe_model}_{safe_ds}_final.pt"),
+                    # One level up: ../checkpoints/ (used when CWD is notebooks/)
+                    os.path.join("..", "checkpoints", f"{safe_model}_{safe_ds}_final.pt"),
                 ]
                 for cand in candidate_paths:
                     if os.path.exists(cand):
