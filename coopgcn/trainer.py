@@ -289,18 +289,21 @@ class CoopGCNTrainer:
 
     def train(
         self,
-        epochs=25,
+        epochs=1000,
         verbose=True,
         checkpoint_dir="checkpoints",
         model_name="Model",
         dataset_name=None,
         resume=True,
-        patience=20,
+        patience=50,
     ):
         """
         Full amortized training schedule with automatic checkpoint saving/loading.
         If a checkpoint exists and resume=True, training is skipped and history is loaded instantly.
-        patience: early-stopping patience on val NDCG@20 (0 = disabled).
+
+        epochs:   maximum number of training epochs (default 1000, matching published baselines).
+        patience: early-stopping patience on val NDCG@20 (default 50; 0 = disabled).
+                  Training stops when val NDCG@20 does not improve for `patience` consecutive epochs.
         """
         if dataset_name is None:
             dataset_name = getattr(self.dataset, "dataset_name", "Dataset")
@@ -389,12 +392,14 @@ class CoopGCNTrainer:
             # Early stopping
             if patience > 0 and epochs_no_improve >= patience:
                 if verbose:
-                    print(f"⏹  Early stopping at epoch {epoch}/{epochs} "
-                          f"(no improvement for {patience} epochs). "
-                          f"Best val NDCG@20: {best_val_ndcg:.4f}")
+                    print(
+                        f"⏹  Early stopping triggered at epoch {epoch}/{epochs} "
+                        f"— no val NDCG@20 improvement for {patience} consecutive epochs. "
+                        f"Best val NDCG@20: {best_val_ndcg:.4f}"
+                    )
                 break
 
-            if verbose and (epoch % 5 == 0 or epoch == 1 or epoch == epochs):
+            if verbose and (epoch % 10 == 0 or epoch == 1 or epoch == epochs):
                 total_elapsed = time.time() - start_time
                 print(
                     f"[Epoch {epoch:2d}/{epochs}] "
