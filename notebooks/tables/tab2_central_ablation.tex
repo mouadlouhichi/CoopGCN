@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\caption{THE Central Make-or-Break Ablation: Axiomatic Shapley vs. Heuristic Attention vs. Uniform Weighting across target datasets.}
+\label{tab:central_ablation}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Weighting / Attribution Method} & \textbf{NDCG@20} & \textbf{TR@20 (Tail)} & \textbf{Coverage@20} & \textbf{Gini Index} \\
+\midrule
+MF & 0.1467 & 0.0052 & 0.3454 & 0.8913 \\
+NCF & 0.2939 & 0.0000 & 0.0654 & 0.9821 \\
+LightGCN & 0.1842 & 0.0036 & 0.2776 & 0.8831 \\
+LightGCN++ & 0.1627 & 0.0100 & 0.4649 & 0.8098 \\
+GAT-CF & 0.1943 & 0.0022 & 0.1938 & 0.9226 \\
+RecDCL & 0.3103 & 0.0000 & 0.1314 & 0.9727 \\
+HCCF & 0.1723 & 0.0019 & 0.2117 & 0.9433 \\
+HPCF & 0.1747 & 0.0020 & 0.2568 & 0.9023 \\
+DyHuCoG & 0.1718 & 0.0026 & 0.2051 & 0.9273 \\
+CoopGCN (Ours) & 0.1826 & 0.0106 & 0.4685 & 0.8448 \\
+\bottomrule
+\end{tabular}
+\end{table}
