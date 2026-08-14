@@ -61,17 +61,46 @@ def bold(v, best):
     return f"\\textbf{{{s}}}" if v == best else s
 
 
-# ── FIG 1: NDCG@20 & Recall@20 ───────────────────────────────────────────────
-fig, axes = plt.subplots(1, 2, figsize=(16, 5.5))
-for ax, (metric, ylabel) in zip(axes, [("ndcg_20", "NDCG@20"), ("recall_20", "Recall@20")]):
-    grouped_bars(ax, metric, ylabel)
-axes[0].legend(fontsize=9, loc="upper right")
-fig.suptitle("Overall Recommendation Accuracy — Graph CF Family\n"
-             "(ML-1M · Yelp2018 · Amazon-Book · Full-catalog ranking @20)",
-             fontsize=12, fontweight="bold", y=1.02)
+# ── FIG 1: per-dataset rows, independent y-axes ──────────────────────────────
+import matplotlib.gridspec as gridspec
+
+fig = plt.figure(figsize=(14, 11))
+gs  = gridspec.GridSpec(3, 2, hspace=0.55, wspace=0.35)
+metrics_f1 = [("ndcg_20", "NDCG@20"), ("recall_20", "Recall@20")]
+
+for row_idx, ds in enumerate(DS):
+    for col_idx, (metric, ylabel) in enumerate(metrics_f1):
+        ax   = fig.add_subplot(gs[row_idx, col_idx])
+        sub  = df[df.dataset == ds]
+        vals = [sub[sub.model==m][metric].values[0] for m in ORDER]
+        x    = np.arange(len(ORDER))
+        bars = ax.bar(x, vals, 0.6,
+                      color=[COLORS[m] for m in ORDER],
+                      alpha=0.90)
+        for bar, v, m in zip(bars, vals, ORDER):
+            if m == "CoopGCN (Ours)": bar.set_edgecolor("black"); bar.set_linewidth(1.5)
+            ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+max(vals)*0.02,
+                    f"{v:.4f}", ha="center", va="bottom", fontsize=7.5,
+                    color=COLORS[m], fontweight="bold" if m=="CoopGCN (Ours)" else "normal")
+        ax.set_xticks(x)
+        ax.set_xticklabels([m.replace(" (Ours)","†") for m in ORDER],
+                           fontsize=8.5, rotation=12, ha="right")
+        ax.set_ylabel(ylabel, fontsize=10)
+        ax.set_ylim(0, max(vals)*1.30)
+        title_txt = f"{ds}  —  {ylabel}" if col_idx==0 else ylabel
+        ax.set_title(title_txt, fontsize=11, fontweight="bold", loc="left")
+
+handles = [plt.Rectangle((0,0),1,1,color=COLORS[m]) for m in ORDER]
+fig.legend(handles, ORDER, loc="upper center", ncol=5,
+           fontsize=9.5, bbox_to_anchor=(0.5, 1.01), frameon=True)
+fig.suptitle("Overall Recommendation Accuracy — Graph CF Family
+"
+             "ML-1M · Yelp2018 · Amazon-Book  |  Full-catalog ranking @20  |  † = projected",
+             fontsize=12, fontweight="bold", y=1.05)
 plt.tight_layout()
 fig.savefig(f"{OUT}/fig1_main_performance.png", dpi=200, bbox_inches="tight")
-plt.close(); print("✅ fig1")
+plt.close()
+print("✅ fig1")
 
 
 # ── FIG 2: TR@20 & Coverage ──────────────────────────────────────────────────
