@@ -1,10 +1,8 @@
-\begin{table}[t]
-\centering
-\caption{Component ablation on ML-1M.}
+\begin{table}[t]\centering
+\caption{Component ablation on ML-1M. Each row removes one architectural component. Best in \textbf{bold}.}
 \label{tab:ablation}
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Variant} & \textbf{NDCG@20} & \textbf{TR@20} & \textbf{Cov@20} & \textbf{Gini$\downarrow$} \\
+\begin{tabular}{l cccc}\toprule
+\textbf{Variant} & \textbf{NDCG@20} & \textbf{TR@20} & \textbf{Cov@20} & \textbf{Gini\,$\downarrow$} \\
 \midrule
 LightGCN (floor) & 0.2169 & 0.0000 & 0.0982 & 0.9430 \\
 DyHuCoG (G2 only) & 0.2775 & 0.0000 & 0.0980 & 0.9440 \\

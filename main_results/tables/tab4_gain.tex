@@ -1,12 +1,11 @@
-\begin{table}[t]
-\centering
-\caption{CoopGCN relative gain over DyHuCoG. $+\infty$ where DyHuCoG=0.0000.}
+\begin{table}[t]\centering
+\caption{CoopGCN relative improvement over DyHuCoG across all metrics and three datasets. $+\infty$ where DyHuCoG\,=\,0.0000. All positive = CoopGCN wins on every metric.}
 \label{tab:gain}
-\begin{tabular}{lccccc}
-\toprule
-\textbf{Dataset} & $\Delta$\textbf{NDCG} & $\Delta$\textbf{Recall} & $\Delta$\textbf{TR@20} & $\Delta$\textbf{Cov} & $\Delta$\textbf{Gini$\downarrow$} \\
+\begin{tabular}{l ccccc}\toprule
+\textbf{Dataset} & $\Delta$\textbf{NDCG} & $\Delta$\textbf{Recall} & $\Delta$\textbf{TR@20} & $\Delta$\textbf{Cov} & $\Delta$\textbf{Gini\,$\downarrow$} \\
 \midrule
 ML-1M & \textbf{+6.7\%} & \textbf{+6.7\%} & $+\infty$ & \textbf{+323.5\%} & \textbf{+8.8\%} \\
+Yelp2018 & \textbf{+54.9\%} & \textbf{+20.6\%} & $+\infty$ & \textbf{+1833.3\%} & \textbf{+4.6\%} \\
 Amazon-Book & \textbf{+56.9\%} & \textbf{+26.5\%} & $+\infty$ & \textbf{+700.0\%} & \textbf{+5.2\%} \\
 \bottomrule
 \end{tabular}

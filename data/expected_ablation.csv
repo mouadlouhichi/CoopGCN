@@ -1,8 +1,8 @@
-variant,recall_20,ndcg_20,tr_20,coverage_20,gini,note
-LightGCN (floor),0.2741,0.2169,0.0000,0.0982,0.943,Graph CF baseline
-DyHuCoG (G2 only),0.3290,0.2775,0.0000,0.0980,0.944,Single-level game
-CoopGCN w/o G1,0.3150,0.2650,0.0031,0.3120,0.889,No edge Shapley
-CoopGCN w/o G2,0.3180,0.2670,0.0035,0.3180,0.886,No hyperedge Shapley
-CoopGCN w/o G3,0.3200,0.2700,0.0042,0.3350,0.878,No data Shapley
-CoopGCN w/o CL,0.3310,0.2800,0.0058,0.3620,0.872,No SVD contrastive
-Full CoopGCN (Ours),0.3510,0.2960,0.0082,0.4150,0.861,All components
+variant,dataset,recall_20,ndcg_20,tr_20,coverage_20,gini,note
+LightGCN (floor),ML-1M,0.2741,0.2169,0.0000,0.0982,0.943,Graph CF baseline
+DyHuCoG (G2 only),ML-1M,0.3290,0.2775,0.0000,0.0980,0.944,Single-level game
+CoopGCN w/o G1,ML-1M,0.3150,0.2650,0.0031,0.3120,0.889,No edge Shapley
+CoopGCN w/o G2,ML-1M,0.3180,0.2670,0.0035,0.3180,0.886,No hyperedge Shapley
+CoopGCN w/o G3,ML-1M,0.3200,0.2700,0.0042,0.3350,0.878,No data Shapley
+CoopGCN w/o CL,ML-1M,0.3310,0.2800,0.0058,0.3620,0.872,No SVD contrastive
+Full CoopGCN (Ours),ML-1M,0.3510,0.2960,0.0082,0.4150,0.861,All components
