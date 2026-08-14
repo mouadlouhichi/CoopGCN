@@ -22,7 +22,7 @@ class CoopGCNLoss(nn.Module):
         lambda_cl=0.005,
         lambda_game=0.01,
         lambda_reg=1e-4,
-        temperature_cl=0.20,
+        temperature_cl=0.05,   # lowered from 0.20 — prevents InfoNCE dominating rank loss
         temperature_neg=0.50,
     ):
         super().__init__()

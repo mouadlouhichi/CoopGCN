@@ -295,10 +295,12 @@ class CoopGCNTrainer:
         model_name="Model",
         dataset_name=None,
         resume=True,
+        patience=20,
     ):
         """
         Full amortized training schedule with automatic checkpoint saving/loading.
         If a checkpoint exists and resume=True, training is skipped and history is loaded instantly.
+        patience: early-stopping patience on val NDCG@20 (0 = disabled).
         """
         if dataset_name is None:
             dataset_name = getattr(self.dataset, "dataset_name", "Dataset")
@@ -337,6 +339,7 @@ class CoopGCNTrainer:
         best_val_ndcg = 0.0
         best_model_state = copy.deepcopy(self.model.state_dict())
         start_time = time.time()
+        epochs_no_improve = 0   # early-stopping counter
 
         if hasattr(self.model, "svd_view"):
             self.model.svd_view.compute_svd_view(self.dataset.train_edges)
@@ -376,9 +379,20 @@ class CoopGCNTrainer:
             if val_metrics["NDCG@20"] > best_val_ndcg:
                 best_val_ndcg = val_metrics["NDCG@20"]
                 best_model_state = copy.deepcopy(self.model.state_dict())
+                epochs_no_improve = 0
                 if ckpt_path:
                     best_path = ckpt_path.replace("_final.pt", "_best.pt")
                     self.save_checkpoint(best_path)
+            else:
+                epochs_no_improve += 1
+
+            # Early stopping
+            if patience > 0 and epochs_no_improve >= patience:
+                if verbose:
+                    print(f"⏹  Early stopping at epoch {epoch}/{epochs} "
+                          f"(no improvement for {patience} epochs). "
+                          f"Best val NDCG@20: {best_val_ndcg:.4f}")
+                break
 
             if verbose and (epoch % 5 == 0 or epoch == 1 or epoch == epochs):
                 total_elapsed = time.time() - start_time
