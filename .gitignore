@@ -9,4 +9,6 @@ figures/
 tables/
 venv/
 .DS_Store
-
+checkpoints/
+*.pth
+*.ckpt
