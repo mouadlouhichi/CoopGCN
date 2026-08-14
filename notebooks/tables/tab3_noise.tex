@@ -1,0 +1,15 @@
+\begin{table}[t]\centering
+\caption{NDCG@20 under adversarial edge noise injection (ML-1M). $\Delta_{20\%}$\,=\,relative drop from clean to 20\% noise. Best per row in \textbf{bold}.}
+\label{tab:noise}
+\begin{tabular}{l c c c c c }\toprule
+\textbf{Noise} & \textbf{LightGCN}  & \textbf{LightGCN++}  & \textbf{HCCF}  & \textbf{DyHuCoG}  & \textbf{CoopGCN (Ours)} \\
+\midrule
+0\% & 0.2169 & 0.2350 & 0.2280 & 0.2775 & \textbf{0.2960} \\
+5\% & 0.2010 & 0.2190 & 0.2100 & 0.2580 & \textbf{0.2890} \\
+10\% & 0.1820 & 0.2010 & 0.1900 & 0.2350 & \textbf{0.2840} \\
+20\% & 0.1540 & 0.1760 & 0.1650 & 0.2080 & \textbf{0.2800} \\
+\midrule
+$\Delta_{20\%}$ & -29.0\%  & -25.1\%  & -27.6\%  & -25.0\%  & \textbf{-5.4\%} \\
+\bottomrule
+\end{tabular}
+\end{table}

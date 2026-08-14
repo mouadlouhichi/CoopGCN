@@ -3,10 +3,12 @@ __pycache__/
 *.pyo
 *.pyd
 .ipynb_checkpoints/
-data/
 results/
 venv/
 .DS_Store
 checkpoints/
+*.pt
 *.pth
 *.ckpt
+notebooks/figures/*.pdf
+notebooks/.ipynb_checkpoints/

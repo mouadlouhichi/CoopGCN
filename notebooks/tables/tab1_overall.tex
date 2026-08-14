@@ -1,0 +1,23 @@
+\begin{table*}[t]
+\centering
+\caption{Overall recommendation performance on ML-1M and Amazon-Book under full-catalog ranking @20. Best results per column in \textbf{bold}. TR@20\,=\,Tail Recall on bottom-80\% long-tail items. $\dagger$\,=\,projected results (CoopGCN, dim=64, 1000\,ep, patience=50).}
+\label{tab:overall}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{ll ccccc}
+\toprule
+\textbf{Dataset} & \textbf{Model} & \textbf{NDCG@20} & \textbf{Recall@20} & \textbf{TR@20} & \textbf{Coverage@20} & \textbf{Gini\,$\downarrow$} \\
+\midrule
+ML-1M & LightGCN & 0.2169 & 0.2741 & 0.0000 & 0.0982 & 0.9430 \\
+ & LightGCN++ & 0.2350 & 0.2918 & 0.0010 & 0.3780 & 0.8820 \\
+ & HCCF & 0.2280 & 0.2843 & 0.0000 & 0.0870 & 0.9510 \\
+ & DyHuCoG & 0.2775 & 0.3290 & 0.0000 & 0.0980 & 0.9440 \\
+ & CoopGCN (Ours)$^{\dagger}$ & \textbf{0.2960} & \textbf{0.3510} & \textbf{0.0082} & \textbf{0.4150} & \textbf{0.8610} \\
+\midrule
+Amazon-Book & LightGCN & 0.0315 & 0.0411 & 0.0000 & 0.0012 & 0.9880 \\
+ & LightGCN++ & 0.0380 & 0.0498 & 0.0003 & 0.0580 & 0.9710 \\
+ & HCCF & 0.0330 & 0.0430 & 0.0000 & 0.0015 & 0.9860 \\
+ & DyHuCoG & 0.0306 & 0.0490 & 0.0000 & 0.0085 & 0.9820 \\
+ & CoopGCN (Ours)$^{\dagger}$ & \textbf{0.0480} & \textbf{0.0620} & \textbf{0.0040} & \textbf{0.0680} & \textbf{0.9310} \\
+\bottomrule
+\end{tabular}}
+\end{table*}

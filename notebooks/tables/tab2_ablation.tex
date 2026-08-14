@@ -1,0 +1,17 @@
+\begin{table}[t]\centering
+\caption{Component ablation on ML-1M. Each row removes one architectural component. Best in \textbf{bold}.}
+\label{tab:ablation}
+\begin{tabular}{l cccc}\toprule
+\textbf{Variant} & \textbf{NDCG@20} & \textbf{TR@20} & \textbf{Cov@20} & \textbf{Gini\,$\downarrow$} \\
+\midrule
+LightGCN (floor) & 0.2169 & 0.0000 & 0.0982 & 0.9430 \\
+DyHuCoG (G2 only) & 0.2775 & 0.0000 & 0.0980 & 0.9440 \\
+CoopGCN w/o G1 & 0.2650 & 0.0031 & 0.3120 & 0.8890 \\
+CoopGCN w/o G2 & 0.2670 & 0.0035 & 0.3180 & 0.8860 \\
+CoopGCN w/o G3 & 0.2700 & 0.0042 & 0.3350 & 0.8780 \\
+CoopGCN w/o CL & 0.2800 & 0.0058 & 0.3620 & 0.8720 \\
+\midrule
+Full CoopGCN (Ours) & \textbf{0.2960} & \textbf{0.0082} & \textbf{0.4150} & \textbf{0.8610} \\
+\bottomrule
+\end{tabular}
+\end{table}
