@@ -8,28 +8,54 @@ Impact Factor 5.3), prepared against the journal's
 
 | File | Description |
 |---|---|
-| `coopgcn_array.tex` | Manuscript source (`elsarticle.cls`, `final,5p,times,twocolumn` — published Elsevier two-column layout) |
-| `references.bib` | 20 references, BibTeX |
+| `coopgcn_cas.tex` | **Manuscript source — Elsevier CAS double-column class (`cas-dc.cls`)**, the class used by published Array articles |
+| `coopgcn_array.tex` | Previous `elsarticle` version, retained for reference |
+| `references.bib` | **34 references**, BibTeX |
+| `cas/` | Official Elsevier CAS bundle: `cas-dc.cls`, `cas-common.sty`, `cas-model2-names.bst`, plus the upstream template |
+| `example.pdf` | The published exemplar the layout was matched against (*Array* 30 (2026) 100986) |
+| `PeerReviewGuidance.pdf` | Elsevier Structured Peer Review prompts the manuscript is audited against |
 | `figures/Figure_1.png` | Monochrome fallback of the TikZ architecture figure (preview builds only) |
 | `figures/Figure_2..7.png` | Result figures, copied verbatim from `main_results/figures/` |
 | `make_figure1.py` | Regenerates the Figure 1 fallback PNG |
 | `build_preview_pdf.py` | Renders a preview PDF without a TeX installation |
-| `CoopGCN_Array_preview.pdf` | Rendered preview (13 pp., two-column) |
+| `CoopGCN_CAS_preview.pdf` | Rendered preview (14 pp., CAS double-column) |
 
-**Figure 1 is drawn in TikZ, black only**, inline in `coopgcn_array.tex`
+**Figure 1 is drawn in TikZ, black only**, inline in `coopgcn_cas.tex`
 (matching the DyHuCoG house style). Compiling with `pdflatex` uses the TikZ
 picture; `figures/Figure_1.png` exists only so the no-LaTeX preview build has
 an equivalent image.
 
+## Template provenance
+
+The exemplar `example.pdf` is a published Array article. Inspecting its PDF
+internals shows it is **not** typeset with `elsarticle`: it uses the Elsevier
+**CAS double-column** class. `coopgcn_cas.tex` therefore starts from the
+official CAS bundle in `cas/`, and the following were measured from
+`example.pdf` and reproduced exactly.
+
+| Property | Exemplar | This manuscript |
+|---|---|---|
+| Document class | `cas-dc` | `cas-dc` |
+| Page size | 595.28 × 793.70 pt (210 × 280 mm) | 595.28 × 793.70 pt |
+| Margins | `vmargin={19.5mm,18.2mm}`, `hmargin=18.1mm` | identical |
+| Column separation | 18 pt | 18 pt |
+| Body type | 8.0 pt, 10.7 pt leading | 8.0 pt, 10.7 pt leading |
+| Caption/reference type | 7.2 pt | 7.2 pt |
+| Front page | title band, then `ARTICLE INFO` \| `ABSTRACT` | same |
+| Keywords | one per line under `Keywords:` in the info column | same |
+| Bibliography style | `cas-model2-names` (numbered) | `cas-model2-names` |
+| CRediT | `\credit{}` per author + `\printcredits` | same |
+| Back matter order | credits → competing interest → acknowledgements → data availability → references | same (plus an ethics statement) |
+
 ## Building the authoritative PDF
 
-`coopgcn_array.tex` is the artefact to submit. With a TeX distribution:
+`coopgcn_cas.tex` is the artefact to submit. With a TeX distribution:
 
 ```bash
-pdflatex coopgcn_array
-bibtex   coopgcn_array
-pdflatex coopgcn_array
-pdflatex coopgcn_array
+pdflatex coopgcn_cas
+bibtex   coopgcn_cas
+pdflatex coopgcn_cas
+pdflatex coopgcn_cas
 ```
 
 `elsarticle.cls` and `elsarticle-num.bst` ship with TeX Live
@@ -39,7 +65,7 @@ pdflatex coopgcn_array
 
 The sandbox this was prepared in has no reachable TeX mirror, so
 `CoopGCN_Array_preview.pdf` was produced by `build_preview_pdf.py`, which parses
-`coopgcn_array.tex` directly and lays it out with ReportLab (display equations
+`coopgcn_cas.tex` directly and lays it out with ReportLab (display equations
 rendered via matplotlib mathtext). It **parses the `.tex` rather than
 duplicating its content**, so the preview cannot silently drift from the source.
 
@@ -122,7 +148,7 @@ variation, and that a learned-attention (GAT-CF) baseline is absent. See
 
 The manuscript is audited against every prompt in `PeerReviewGuidance.pdf`
 (Elsevier, *Structured Peer Review prompts for Original Research article
-type*, April 2026). Section numbers refer to `coopgcn_array.tex`.
+type*, April 2026). Section numbers refer to `coopgcn_cas.tex`.
 
 | Prompt | Where it is addressed |
 |---|---|
@@ -136,7 +162,7 @@ type*, April 2026). Section numbers refer to `coopgcn_array.tex`.
 | **Results** — whether additional sub-analyses / CIs / effect sizes / sensitivity are needed | §6.8 `Statistical reporting` states that no significance claim is made anywhere, distinguishes the suggestive small-margin regime (6.7 %) from the load-bearing large-effect regime (4.2×–56.7×), and specifies the powered $n \ge 5$ seed study as future work §8.3. |
 | **Discussion** — interpretation supported by the data and design | §7.7 `Discussion: what the axioms buy` is scoped to the ablation and robustness evidence; Amazon-Book claims are deliberately framed against LightGCN/DyHuCoG only, because the SGL/SimGCL cells are flagged unreconcilable. |
 | **Discussion** — limitations of theory, methods *and argument* clearly emphasised | §8.2, six labelled limitations: unresolved central comparison; provenance and variance; ablation nesting; unmeasured efficiency; metric interpretation against small denominators; scope. |
-| **References** — most up-to-date and relevant | 20 entries, 1953–2026; every entry cited, no orphans (audited). |
+| **References** — most up-to-date and relevant | **34 entries**, 1953–2026 (14 added for the CAS revision: XSimGCL, SSL survey, PDA, DecRS, bias survey, two Abdollahpouri long-tail papers, T-CE, RGCF, GAT, GCN, two Castro Shapley-sampling papers, WRMF); every entry cited, no orphans (audited). |
 | **Overall** — novelty/importance; reproducibility; educational goals | §1.4 contributions; artefacts, seeds and result records released (Data availability); the taxonomy in §2.5 and the axiom treatment in §3.2 are written to be usable as teaching material. |
 | **Overall** — ethical / integrity concerns | **`Ethics and research integrity`** section before the AI declaration: public non-identifying datasets, no human subjects, explicit statement of which cells are projected vs estimated, unreconcilable inherited baselines reported rather than dropped, and a societal-impact note on credit scores as sensitive artefacts. |
 | **Title** (optional prompt) — accurate, sufficient, discoverable | Names the method, the mechanism (axiomatic credit assignment / cooperative game theory), the model family (GCN) and the two claimed properties (robust, preference-aware). |

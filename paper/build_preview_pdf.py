@@ -19,26 +19,35 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import cm
+from reportlab.lib.units import cm, mm
 from reportlab.platypus import (BaseDocTemplate, Frame, Image, KeepTogether,
                                 FrameBreak, ListFlowable, ListItem, NextPageTemplate, PageBreak,
                                 PageTemplate, Paragraph, Spacer, Table, TableStyle)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TEX = os.path.join(HERE, "coopgcn_array.tex")
+TEX = os.path.join(HERE, "coopgcn_cas.tex")
 BIB = os.path.join(HERE, "references.bib")
-OUT = os.path.join(HERE, "CoopGCN_Array_preview.pdf")
+OUT = os.path.join(HERE, "CoopGCN_CAS_preview.pdf")
 EQD = os.path.join(HERE, ".eqcache")
 os.makedirs(EQD, exist_ok=True)
 
-PAGE_W, PAGE_H = A4
-MARGIN = 1.9 * cm
+# Exact cas-dc.cls page geometry:
+#   paperwidth=210mm, paperheight=280mm,
+#   vmargin={19.5mm,18.2mm}, hmargin={18.1mm,18.1mm}, columnsep=18pt
+PAGE_W = 210 * mm
+PAGE_H = 280 * mm
+MARGIN = 18.1 * mm
+TMARGIN = 19.5 * mm
+BMARGIN = 18.2 * mm
 BODY_W = PAGE_W - 2 * MARGIN
-GUTTER = 0.7 * cm
+GUTTER = 18.0            # columnsep = 18pt
 COL_W_G = (BODY_W - GUTTER) / 2.0
+# CAS front page: narrow ARTICLE INFO column + wide ABSTRACT column
+CAS_INFO_W = 0.30 * BODY_W
+CAS_ABS_W = BODY_W - CAS_INFO_W
 corn = 0
 algn = 0
 
@@ -46,35 +55,35 @@ algn = 0
 ss = getSampleStyleSheet()
 S = {
     "title": ParagraphStyle("title", parent=ss["Title"], fontName="Times-Bold",
-                            fontSize=17, leading=21, spaceAfter=10),
+                            fontSize=15, leading=18.5, spaceAfter=8, alignment=TA_LEFT),
     "author": ParagraphStyle("author", parent=ss["Normal"], fontName="Times-Roman",
-                             fontSize=11, leading=14, alignment=TA_CENTER, spaceAfter=2),
+                             fontSize=10.5, leading=13, alignment=TA_LEFT, spaceAfter=2),
     "affil": ParagraphStyle("affil", parent=ss["Normal"], fontName="Times-Italic",
-                            fontSize=9, leading=12, alignment=TA_CENTER, spaceAfter=2),
+                            fontSize=7.2, leading=9.2, alignment=TA_LEFT, spaceAfter=1),
     "absthead": ParagraphStyle("absthead", parent=ss["Normal"], fontName="Times-Bold",
                                fontSize=10.5, leading=13, spaceBefore=10, spaceAfter=4),
     "abstract": ParagraphStyle("abstract", parent=ss["Normal"], fontName="Times-Roman",
-                               fontSize=9.5, leading=12.4, alignment=TA_JUSTIFY),
+                               fontSize=8.0, leading=10.7, alignment=TA_JUSTIFY),
     "kw": ParagraphStyle("kw", parent=ss["Normal"], fontName="Times-Roman",
-                         fontSize=9.5, leading=12.4, alignment=TA_JUSTIFY, spaceBefore=6),
+                         fontSize=8.0, leading=10.7, alignment=TA_JUSTIFY, spaceBefore=6),
     "h1": ParagraphStyle("h1", parent=ss["Normal"], fontName="Times-Bold",
-                         fontSize=10.8, leading=13, spaceBefore=14, spaceAfter=6),
+                         fontSize=9.0, leading=11.5, spaceBefore=11, spaceAfter=5),
     "h2": ParagraphStyle("h2", parent=ss["Normal"], fontName="Times-Bold",
-                         fontSize=9.8, leading=12, spaceBefore=10, spaceAfter=4),
+                         fontSize=8.4, leading=10.7, spaceBefore=9, spaceAfter=3),
     "h1s": ParagraphStyle("h1s", parent=ss["Normal"], fontName="Times-Bold",
-                          fontSize=10.2, leading=12.5, spaceBefore=13, spaceAfter=5),
+                          fontSize=9.0, leading=11.5, spaceBefore=11, spaceAfter=5),
     "body": ParagraphStyle("body", parent=ss["Normal"], fontName="Times-Roman",
-                           fontSize=9.2, leading=11.6, alignment=TA_JUSTIFY,
-                           spaceAfter=6),
+                           fontSize=8.0, leading=10.7, alignment=TA_JUSTIFY,
+                           spaceAfter=5),
     "cap": ParagraphStyle("cap", parent=ss["Normal"], fontName="Times-Roman",
-                          fontSize=8.2, leading=10.2, alignment=TA_JUSTIFY,
+                          fontSize=7.2, leading=9.2, alignment=TA_JUSTIFY,
                           spaceBefore=4, spaceAfter=8),
     "prop": ParagraphStyle("prop", parent=ss["Normal"], fontName="Times-Roman",
-                           fontSize=9.2, leading=11.6, alignment=TA_JUSTIFY,
+                           fontSize=8.0, leading=10.7, alignment=TA_JUSTIFY,
                            leftIndent=10, rightIndent=6, spaceAfter=6,
                            borderPadding=0),
     "ref": ParagraphStyle("ref", parent=ss["Normal"], fontName="Times-Roman",
-                          fontSize=7.9, leading=9.9, alignment=TA_JUSTIFY,
+                          fontSize=7.2, leading=9.0, alignment=TA_JUSTIFY,
                           leftIndent=12, firstLineIndent=-16, spaceAfter=3),
     "tbl": ParagraphStyle("tbl", parent=ss["Normal"], fontName="Times-Roman",
                           fontSize=7.4, leading=9.2),
@@ -94,8 +103,14 @@ S = {
                            fontSize=7.0, leading=9.8, alignment=TA_CENTER),
     "eqn": ParagraphStyle("eqn", parent=ss["Normal"], fontName="Times-Roman",
                           fontSize=8.5, leading=10),
+    "casinfo": ParagraphStyle("casinfo", parent=ss["Normal"], fontName="Times-Roman",
+                              fontSize=8.2, leading=10.5, spaceAfter=2),
+    "kwhead": ParagraphStyle("kwhead", parent=ss["Normal"], fontName="Times-Italic",
+                             fontSize=7.6, leading=9.6, spaceAfter=1),
+    "kwitem": ParagraphStyle("kwitem", parent=ss["Normal"], fontName="Times-Roman",
+                             fontSize=7.6, leading=9.6),
     "hl": ParagraphStyle("hl", parent=ss["Normal"], fontName="Times-Roman",
-                         fontSize=9.0, leading=11.4, alignment=TA_JUSTIFY,
+                         fontSize=8.0, leading=10.7, alignment=TA_JUSTIFY,
                          leftIndent=12, bulletIndent=2, spaceAfter=2),
 }
 
@@ -158,6 +173,16 @@ _ACCENTS = [
     (r"\\~\{n\}", "\u00f1"), (r"\\~\{a\}", "\u00e3"),
     (r"\\c\{c\}", "\u00e7"), (r"\\c\{C\}", "\u00c7"),
     (r"\\ss\b", "\u00df"), (r"\\o\b", "\u00f8"),
+    # bare (unbraced) accent forms: \'o  \'a  \"u  \^e  \`a  \~n  \v s
+    (r"\\'a", "\u00e1"), (r"\\'e", "\u00e9"), (r"\\'i", "\u00ed"),
+    (r"\\'o", "\u00f3"), (r"\\'u", "\u00fa"), (r"\\'c", "\u0107"),
+    (r"\\'n", "\u0144"), (r"\\'s", "\u015b"), (r"\\'y", "\u00fd"),
+    (r'\\"a', "\u00e4"), (r'\\"o', "\u00f6"), (r'\\"u', "\u00fc"),
+    (r"\\`a", "\u00e0"), (r"\\`e", "\u00e8"),
+    (r"\\\^a", "\u00e2"), (r"\\\^e", "\u00ea"), (r"\\\^o", "\u00f4"),
+    (r"\\~n", "\u00f1"), (r"\\~a", "\u00e3"),
+    (r"\\vs\b", "\u0161"), (r"\\vc\b", "\u010d"), (r"\\vz\b", "\u017e"),
+    (r"\\&", "&amp;"),
     (r"\\aa\b", "\u00e5"), (r"\\ae\b", "\u00e6"),
 ]
 
@@ -339,7 +364,7 @@ body = tex[body_start:body_end]
 story = []
 
 # ---- front matter
-title = re.search(r"\\title\{(.*?)\n?\}", tex, re.S).group(1)
+title = re.search(r"\\title(?:\[[^\]]*\])?\{(.*?)\n?\}", tex, re.S).group(1)
 story.append(Paragraph(inline(title), S["title"]))
 story.append(Paragraph("Mouad Louhichi<super>a,*</super> &nbsp; Redwane Nesmaoui<super>a</super> &nbsp; Mohamed Lazaar<super>a</super>", S["author"]))
 story.append(Paragraph("<super>a</super> National Higher School of Computer Science and Systems Analysis (ENSIAS), Mohammed V University in Rabat, Morocco", S["affil"]))
@@ -349,10 +374,38 @@ story.append(Table([[""]], colWidths=[BODY_W],
                    style=TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.6, colors.HexColor("#999999"))])))
 
 abst = re.search(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", tex, re.S).group(1)
-story.append(Paragraph("Abstract", S["absthead"]))
-story.append(Paragraph(inline(abst, refmap), S["abstract"]))
 hl = re.search(r"\\begin\{highlights\}(.*?)\\end\{highlights\}", tex, re.S)
+kw = re.search(r"\\begin\{keywords?\}(.*?)\\end\{keywords?\}", tex, re.S).group(1)
+
+# ---- left cell: ARTICLE INFO (keywords list, one per line, CAS style)
+info = [Paragraph("A R T I C L E&nbsp; I N F O", S["casinfo"]),
+        Table([[""]], colWidths=[CAS_INFO_W],
+              style=TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.5, colors.black)])),
+        Spacer(1, 5),
+        Paragraph("<i>Keywords:</i>", S["kwhead"])]
+for k in [x.strip() for x in kw.replace("\\sep", "|").split("|") if x.strip()]:
+    info.append(Paragraph(inline(k), S["kwitem"]))
+
+# ---- right cell: ABSTRACT
+absblk = [Paragraph("A B S T R A C T", S["casinfo"]),
+          Table([[""]], colWidths=[CAS_ABS_W],
+                style=TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.5, colors.black)])),
+          Spacer(1, 5),
+          Paragraph(inline(abst, refmap), S["abstract"])]
+
+story.append(Table([[info, absblk]],
+                   colWidths=[CAS_INFO_W, CAS_ABS_W],
+                   style=TableStyle([
+                       ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                       ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                       ("RIGHTPADDING", (0, 0), (0, 0), 18),
+                       ("RIGHTPADDING", (1, 0), (1, 0), 0),
+                       ("TOPPADDING", (0, 0), (-1, -1), 0),
+                       ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                   ])))
+
 if hl:
+    story.append(Spacer(1, 9))
     story.append(Paragraph("Highlights", S["absthead"]))
     items = [x.strip() for x in re.split(r"\\item", hl.group(1)) if x.strip()]
     story.append(ListFlowable(
@@ -361,9 +414,6 @@ if hl:
         bulletType="bullet", leftIndent=12,
         bulletFontName="Times-Roman", bulletFontSize=8))
 
-kw = re.search(r"\\begin\{keyword\}(.*?)\\end\{keyword\}", tex, re.S).group(1)
-kw = " · ".join(x.strip() for x in kw.replace("\\sep", "|").split("|") if x.strip())
-story.append(Paragraph("<b>Keywords:</b> " + inline(kw), S["kw"]))
 story.append(Spacer(1, 6))
 story.append(Table([[""]], colWidths=[BODY_W],
                    style=TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.6, colors.HexColor("#999999"))])))
@@ -479,7 +529,7 @@ def emit_figure_env(block, avail=None, wide=False):
     w, h = PILImage.open(path).size
     iw = avail if avail is not None else BODY_W
     ih = h * (iw / w)
-    maxh = PAGE_H - 2 * MARGIN - 150
+    maxh = PAGE_H - TMARGIN - BMARGIN - 150
     if ih > maxh:
         ih = maxh
         iw = w * (ih / h)
@@ -715,34 +765,34 @@ def on_page(canv, doc):
     canv.saveState()
     canv.setFont("Times-Roman", 8)
     canv.setFillColor(colors.HexColor("#666666"))
-    canv.drawString(MARGIN, PAGE_H - MARGIN + 12,
+    canv.drawString(MARGIN, PAGE_H - TMARGIN + 12,
                     "Array (Elsevier) — submitted manuscript")
-    canv.drawRightString(PAGE_W - MARGIN, PAGE_H - MARGIN + 12,
+    canv.drawRightString(PAGE_W - MARGIN, PAGE_H - TMARGIN + 12,
                          "Louhichi, Nesmaoui & Lazaar")
     canv.setLineWidth(0.4)
-    canv.line(MARGIN, PAGE_H - MARGIN + 8, PAGE_W - MARGIN, PAGE_H - MARGIN + 8)
-    canv.drawCentredString(PAGE_W / 2, MARGIN - 16, str(doc.page))
+    canv.line(MARGIN, PAGE_H - TMARGIN + 8, PAGE_W - MARGIN, PAGE_H - TMARGIN + 8)
+    canv.drawCentredString(PAGE_W / 2, BMARGIN - 14, str(doc.page))
     canv.restoreState()
 
 
-doc = BaseDocTemplate(OUT, pagesize=A4,
+doc = BaseDocTemplate(OUT, pagesize=(PAGE_W, PAGE_H),
                       leftMargin=MARGIN, rightMargin=MARGIN,
-                      topMargin=MARGIN, bottomMargin=MARGIN,
+                      topMargin=TMARGIN, bottomMargin=BMARGIN,
                       title="CoopGCN — Array submission",
                       author="Louhichi, Nesmaoui, Lazaar")
-H = PAGE_H - 2 * MARGIN
-fl = Frame(MARGIN, MARGIN, COL_W_G, H, id="c1",
+H = PAGE_H - TMARGIN - BMARGIN
+fl = Frame(MARGIN, BMARGIN, COL_W_G, H, id="c1",
            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
-fr = Frame(MARGIN + COL_W_G + GUTTER, MARGIN, COL_W_G, H, id="c2",
+fr = Frame(MARGIN + COL_W_G + GUTTER, BMARGIN, COL_W_G, H, id="c2",
            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
-fw = Frame(MARGIN, MARGIN, BODY_W, H, id="w",
+fw = Frame(MARGIN, BMARGIN, BODY_W, H, id="w",
            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 TBAND = 0.70 * H          # title + abstract + highlights + keywords
-ftitle = Frame(MARGIN, MARGIN + H - TBAND, BODY_W, TBAND, id="t",
+ftitle = Frame(MARGIN, BMARGIN + H - TBAND, BODY_W, TBAND, id="t",
                leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
-ftl = Frame(MARGIN, MARGIN, COL_W_G, H - TBAND - 8, id="tc1",
+ftl = Frame(MARGIN, BMARGIN, COL_W_G, H - TBAND - 8, id="tc1",
             leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
-ftr = Frame(MARGIN + COL_W_G + GUTTER, MARGIN, COL_W_G, H - TBAND - 8, id="tc2",
+ftr = Frame(MARGIN + COL_W_G + GUTTER, BMARGIN, COL_W_G, H - TBAND - 8, id="tc2",
             leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 doc.addPageTemplates([
     PageTemplate(id="title", frames=[ftitle, ftl, ftr], onPage=on_page),
