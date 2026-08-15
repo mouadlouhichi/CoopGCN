@@ -24,8 +24,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import (BaseDocTemplate, Frame, Image, KeepTogether,
-                                ListFlowable, ListItem, PageBreak, PageTemplate,
-                                Paragraph, Spacer, Table, TableStyle)
+                                FrameBreak, ListFlowable, ListItem, NextPageTemplate, PageBreak,
+                                PageTemplate, Paragraph, Spacer, Table, TableStyle)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEX = os.path.join(HERE, "coopgcn_array.tex")
@@ -35,8 +35,12 @@ EQD = os.path.join(HERE, ".eqcache")
 os.makedirs(EQD, exist_ok=True)
 
 PAGE_W, PAGE_H = A4
-MARGIN = 2.2 * cm
+MARGIN = 1.9 * cm
 BODY_W = PAGE_W - 2 * MARGIN
+GUTTER = 0.7 * cm
+COL_W_G = (BODY_W - GUTTER) / 2.0
+corn = 0
+algn = 0
 
 # ----------------------------------------------------------------- styles ---
 ss = getSampleStyleSheet()
@@ -54,34 +58,45 @@ S = {
     "kw": ParagraphStyle("kw", parent=ss["Normal"], fontName="Times-Roman",
                          fontSize=9.5, leading=12.4, alignment=TA_JUSTIFY, spaceBefore=6),
     "h1": ParagraphStyle("h1", parent=ss["Normal"], fontName="Times-Bold",
-                         fontSize=12.5, leading=15, spaceBefore=14, spaceAfter=6),
+                         fontSize=10.8, leading=13, spaceBefore=14, spaceAfter=6),
     "h2": ParagraphStyle("h2", parent=ss["Normal"], fontName="Times-Bold",
-                         fontSize=11, leading=13.5, spaceBefore=10, spaceAfter=4),
+                         fontSize=9.8, leading=12, spaceBefore=10, spaceAfter=4),
     "h1s": ParagraphStyle("h1s", parent=ss["Normal"], fontName="Times-Bold",
-                          fontSize=11.5, leading=14, spaceBefore=13, spaceAfter=5),
+                          fontSize=10.2, leading=12.5, spaceBefore=13, spaceAfter=5),
     "body": ParagraphStyle("body", parent=ss["Normal"], fontName="Times-Roman",
-                           fontSize=10, leading=13.4, alignment=TA_JUSTIFY,
+                           fontSize=9.2, leading=11.6, alignment=TA_JUSTIFY,
                            spaceAfter=6),
     "cap": ParagraphStyle("cap", parent=ss["Normal"], fontName="Times-Roman",
-                          fontSize=8.6, leading=11, alignment=TA_JUSTIFY,
-                          spaceBefore=5, spaceAfter=9),
+                          fontSize=8.2, leading=10.2, alignment=TA_JUSTIFY,
+                          spaceBefore=4, spaceAfter=8),
     "prop": ParagraphStyle("prop", parent=ss["Normal"], fontName="Times-Roman",
-                           fontSize=10, leading=13.4, alignment=TA_JUSTIFY,
+                           fontSize=9.2, leading=11.6, alignment=TA_JUSTIFY,
                            leftIndent=10, rightIndent=6, spaceAfter=6,
                            borderPadding=0),
     "ref": ParagraphStyle("ref", parent=ss["Normal"], fontName="Times-Roman",
-                          fontSize=8.8, leading=11.4, alignment=TA_JUSTIFY,
-                          leftIndent=16, firstLineIndent=-16, spaceAfter=3),
+                          fontSize=7.9, leading=9.9, alignment=TA_JUSTIFY,
+                          leftIndent=12, firstLineIndent=-16, spaceAfter=3),
     "tbl": ParagraphStyle("tbl", parent=ss["Normal"], fontName="Times-Roman",
-                          fontSize=8.1, leading=10),
+                          fontSize=7.4, leading=9.2),
     "tblb": ParagraphStyle("tblb", parent=ss["Normal"], fontName="Times-Bold",
-                           fontSize=8.1, leading=10),
+                           fontSize=7.4, leading=9.2),
     "tblh": ParagraphStyle("tblh", parent=ss["Normal"], fontName="Times-Bold",
-                           fontSize=8.1, leading=10, alignment=TA_CENTER),
+                           fontSize=7.4, leading=9.2, alignment=TA_CENTER),
+    "alg": ParagraphStyle("alg", parent=ss["Normal"], fontName="Times-Roman",
+                          fontSize=7.8, leading=9.8),
+    "algn": ParagraphStyle("algn", parent=ss["Normal"], fontName="Times-Roman",
+                           fontSize=7.0, leading=9.8, alignment=TA_CENTER),
+    "eqn": ParagraphStyle("eqn", parent=ss["Normal"], fontName="Times-Roman",
+                          fontSize=8.5, leading=10),
+    "hl": ParagraphStyle("hl", parent=ss["Normal"], fontName="Times-Roman",
+                         fontSize=9.0, leading=11.4, alignment=TA_JUSTIFY,
+                         leftIndent=12, bulletIndent=2, spaceAfter=2),
 }
 
 # ------------------------------------------------------------- tex helpers ---
 GREEK = {
+    r"\gets": "\u2190", r"\emptyset": "\u2205", r"\varnothing": "\u2205",
+    r"\equiv": "\u2261",
     r"\alpha": "\u03b1", r"\beta": "\u03b2", r"\gamma": "\u03b3",
     r"\delta": "\u03b4", r"\epsilon": "\u03b5", r"\eta": "\u03b7",
     r"\kappa": "\u03ba", r"\lambda": "\u03bb", r"\mu": "\u03bc",
@@ -93,7 +108,7 @@ GREEK = {
     r"\downarrow": "\u2193", r"\subseteq": "\u2286", r"\in": "\u2208",
     r"\setminus": "\\", r"\forall": "\u2200", r"\Rightarrow": "\u21d2",
     r"\sum": "\u03a3", r"\sim": "~", r"\approx": "\u2248", r"\pm": "\u00b1",
-    r"\cup": "\u222a", r"\cap": "\u2229", r"\varnothing": "\u2205",
+    r"\cup": "\u222a", r"\cap": "\u2229",
 }
 
 CITEKEYS = []
@@ -173,6 +188,7 @@ def inline(s, refmap=None):
     s = re.sub(r"\\mathrm\{([^}]*)\}", r"\1", s)
     s = re.sub(r"\\text\{([^}]*)\}", r"\1", s)
     s = s.replace("\\lVert", "||").replace("\\rVert", "||")
+    s = s.replace("\\Vert", "|")
     s = s.replace("\\|", "||").replace("\\ast", "*")
     s = re.sub(r"\\sqrt\{([^{}]*)\}", "\u221a(\\1)", s)
     s = re.sub(r"\\frac\{([^{}]*)\}\{([^{}]*)\}", r"(\1)/(\2)", s)
@@ -190,8 +206,10 @@ def inline(s, refmap=None):
     for k, v in sorted(GREEK.items(), key=lambda x: -len(x[0])):
         s = s.replace(k, v)
 
+    s = re.sub(r"\\!|\\;|\\:", "", s)
     s = s.replace("$", "").replace("\\,", " ").replace("\\ ", " ")
     s = s.replace("\\%", "%").replace("\\&", "&amp;").replace("\\_", "_")
+    s = s.replace("\\#", "#").replace("\\$", "$")
     s = s.replace("~", " ").replace("``", "\u201c").replace("''", "\u201d")
     s = s.replace("---", "\u2014")
     s = s.replace("--", "\u2013")
@@ -215,6 +233,13 @@ def render_eq(latex, width_pt=380):
     body = re.sub(r"\\bigl|\\bigr|\\Bigl|\\Bigr", "", body)
     body = body.replace("\\lVert", "\\|").replace("\\rVert", "\\|")
     body = body.replace("\\ast", "*")
+    body = re.sub(r"\\!|\\,|\\;|\\:", "", body)
+    body = re.sub(r"\\textstyle|\\displaystyle|\\limits", "", body)
+    body = body.replace("\\Vert", "|")
+    body = re.sub(r"\\mathregular\{([^{}]*)\}", r"\\mathrm{\1}", body)
+    body = body.replace("&", "")
+    body = body.replace("\\tfrac", "\\frac")
+    body = re.sub(r"\\left\\?\||\\right\\?\|", "|", body)
     if not os.path.exists(path):
         for size in (13, 11, 9):
             try:
@@ -269,6 +294,10 @@ for i, m in enumerate(re.finditer(r"\\label\{(eq:[^}]+)\}", tex), 1):
     refmap[m.group(1)] = f"({i})"
 for i, m in enumerate(re.finditer(r"\\begin\{proposition\}\s*(?:\[[^\]]*\])?\s*\\label\{(prop:[^}]+)\}", tex), 1):
     refmap[m.group(1)] = str(i)
+for i, m in enumerate(re.finditer(r"\\begin\{definition\}\s*(?:\[[^\]]*\])?\s*\\label\{(def:[^}]+)\}", tex), 1):
+    refmap[m.group(1)] = str(i)
+for i, m in enumerate(re.finditer(r"\\begin\{algorithm\}.*?\\label\{(alg:[^}]+)\}", tex, re.S), 1):
+    refmap[m.group(1)] = str(i)
 
 body_start = tex.index("\\section{Introduction}")
 body_end = tex.index("\\bibliographystyle")
@@ -289,16 +318,27 @@ story.append(Table([[""]], colWidths=[BODY_W],
 abst = re.search(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", tex, re.S).group(1)
 story.append(Paragraph("Abstract", S["absthead"]))
 story.append(Paragraph(inline(abst, refmap), S["abstract"]))
+hl = re.search(r"\\begin\{highlights\}(.*?)\\end\{highlights\}", tex, re.S)
+if hl:
+    story.append(Paragraph("Highlights", S["absthead"]))
+    items = [x.strip() for x in re.split(r"\\item", hl.group(1)) if x.strip()]
+    story.append(ListFlowable(
+        [ListItem(Paragraph(inline(i, refmap), S["hl"]), leftIndent=14)
+         for i in items],
+        bulletType="bullet", leftIndent=12,
+        bulletFontName="Times-Roman", bulletFontSize=8))
+
 kw = re.search(r"\\begin\{keyword\}(.*?)\\end\{keyword\}", tex, re.S).group(1)
 kw = " · ".join(x.strip() for x in kw.replace("\\sep", "|").split("|") if x.strip())
 story.append(Paragraph("<b>Keywords:</b> " + inline(kw), S["kw"]))
 story.append(Spacer(1, 6))
 story.append(Table([[""]], colWidths=[BODY_W],
                    style=TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.6, colors.HexColor("#999999"))])))
-story.append(Spacer(1, 4))
+story.append(NextPageTemplate("two"))
+story.append(PageBreak())
 
 
-def emit_table_env(block):
+def emit_table_env(block, avail=None, wide=False):
     cap = re.search(r"\\caption\{(.*?)\}\s*\n\s*\\label", block, re.S)
     lab = re.search(r"\\label\{(tab:[^}]+)\}", block)
     capt = cap.group(1) if cap else ""
@@ -344,6 +384,10 @@ def emit_table_env(block):
             mr = re.match(r"\\multirow\{\d+\}\{[^}]*\}\{(.*)\}$", c)
             if mr:
                 c = mr.group(1)
+            mc = re.match(r"\\multicolumn\{(\d+)\}\{[^}]*\}\{(.*)\}$", c.strip())
+            if mc:
+                c = mc.group(2)
+                styles.append(("SPAN", (0, rowi), (-1, rowi)))
             st = S["tblb"] if ("\\textbf" in c or "\\multicolumn" in c) else S["tbl"]
             if rowi == 0:
                 st = S["tblh"]
@@ -355,7 +399,8 @@ def emit_table_env(block):
     if not rows:
         return
 
-    avail = BODY_W
+    if avail is None:
+        avail = BODY_W
     if ncol >= 8:
         w = [avail * 0.09, avail * 0.09] + [(avail * 0.82) / (ncol - 2)] * (ncol - 2)
     elif ncol == 7:
@@ -382,7 +427,7 @@ def emit_table_env(block):
         t, Spacer(1, 12)]))
 
 
-def emit_figure_env(block):
+def emit_figure_env(block, avail=None, wide=False):
     img = re.search(r"\\includegraphics\[[^\]]*\]\{([^}]+)\}", block)
     cap = re.search(r"\\caption\{(.*?)\}\s*\n\s*\\label", block, re.S)
     lab = re.search(r"\\label\{(fig:[^}]+)\}", block)
@@ -393,9 +438,9 @@ def emit_figure_env(block):
         return
     from PIL import Image as PILImage
     w, h = PILImage.open(path).size
-    iw = BODY_W
+    iw = avail if avail is not None else BODY_W
     ih = h * (iw / w)
-    maxh = PAGE_H - 2 * MARGIN - 120
+    maxh = (0.62 * (PAGE_H - 2 * MARGIN)) if wide else (PAGE_H - 2 * MARGIN - 120)
     if ih > maxh:
         ih = maxh
         iw = w * (ih / h)
@@ -406,6 +451,87 @@ def emit_figure_env(block):
         Paragraph(f"<b>Fig. {num}.</b> " + inline(capt, refmap), S["cap"])]))
 
 
+def emit_algorithm(block):
+    global algn
+    algn += 1
+    cap = re.search(r"\\caption\{(.*?)\}", block, re.S)
+    body = re.search(r"\\begin\{algorithmic\}(?:\[\d+\])?(.*?)\\end\{algorithmic\}",
+                     block, re.S)
+    if not body:
+        return
+    lines = []
+    depth = 0
+    for raw in body.group(1).split("\n"):
+        t = raw.strip()
+        if not t:
+            continue
+        if re.match(r"\\(EndFor|EndIf|EndWhile|EndProcedure)", t):
+            depth = max(0, depth - 1)
+            continue
+        kw = None
+        m = re.match(r"\\(State|For|If|ElsIf|Else|While|Return|Ensure|Require|Procedure)\b(.*)",
+                     t, re.S)
+        if m:
+            kw, rest = m.group(1), m.group(2)
+        else:
+            kw, rest = "State", t
+        rest = re.sub(r"^\{(.*)\}$", r"\1", rest.strip())
+        cm_ = re.search(r"\\Comment\{(.*?)\}", rest)
+        comment = cm_.group(1) if cm_ else None
+        rest = re.sub(r"\\Comment\{.*?\}", "", rest)
+        prefix = {"For": "for ", "If": "if ", "ElsIf": "else if ",
+                  "Else": "else", "While": "while ", "Return": "return ",
+                  "Procedure": "procedure "}.get(kw, "")
+        txt = inline(prefix + rest, refmap)
+        if comment:
+            txt += f' <font color="#777777"><i>// {inline(comment, refmap)}</i></font>'
+        lines.append(("&nbsp;" * (4 * depth)) + txt)
+        if kw in ("For", "If", "While", "Procedure"):
+            depth += 1
+    rows = [[Paragraph(f"<font color='#999999'>{i}</font>", S["algn"]),
+             Paragraph(l, S["alg"])] for i, l in enumerate(lines, 1)]
+    t = Table(rows, colWidths=[14, COL_W_G - 14])
+    t.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"),
+                           ("TOPPADDING", (0, 0), (-1, -1), 0.6),
+                           ("BOTTOMPADDING", (0, 0), (-1, -1), 0.6),
+                           ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                           ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+    head = Paragraph(f"<b>Algorithm {algn}.</b> " +
+                     inline(cap.group(1) if cap else "", refmap), S["cap"])
+    story.append(KeepTogether([
+        Table([[""]], colWidths=[COL_W_G],
+              style=TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.9, colors.black)])),
+        head, t,
+        Table([[""]], colWidths=[COL_W_G],
+              style=TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.9, colors.black)])),
+        Spacer(1, 9)]))
+
+
+_wide_open = [False]
+
+
+def start_wide():
+    """Switch to the full-width float page; consecutive floats stack there."""
+    if _wide_open[0]:
+        return
+    story.append(NextPageTemplate("wide"))
+    story.append(PageBreak())
+    _wide_open[0] = True
+
+
+def end_wide():
+    """Nothing to do immediately; the band stays open for adjacent floats."""
+    return
+
+
+def close_wide():
+    """Return to the two-column body flow."""
+    if _wide_open[0]:
+        story.append(NextPageTemplate("two"))
+        story.append(FrameBreak())
+        _wide_open[0] = False
+
+
 def emit_paragraphs(txt):
     txt = re.sub(r"(?<!\\)%.*?$", "", txt, flags=re.M)
     txt = re.sub(r"\\label\{[^}]*\}", "", txt)
@@ -413,16 +539,22 @@ def emit_paragraphs(txt):
         c = chunk.strip()
         if not c:
             continue
+        close_wide()
         story.append(Paragraph(inline(c, refmap), S["body"]))
 
 
 # walk the body
 pos = 0
 pattern = re.compile(
-    r"\\section\*?\{(?P<sec>.*?)\}"
-    r"|\\subsection\*?\{(?P<sub>.*?)\}"
+    r"\\section(?P<secstar>\*?)\{(?P<sec>(?:[^{}]|\{[^{}]*\})*)\}"
+    r"|\\subsection\*?\{(?P<sub>(?:[^{}]|\{[^{}]*\})*)\}"
+    r"|\\begin\{table\*\}(?P<tbls>.*?)\\end\{table\*\}"
     r"|\\begin\{table\}(?P<tbl>.*?)\\end\{table\}"
+    r"|\\begin\{figure\*\}(?P<figs>.*?)\\end\{figure\*\}"
     r"|\\begin\{figure\}(?P<fig>.*?)\\end\{figure\}"
+    r"|\\begin\{algorithm\}(?P<alg>.*?)\\end\{algorithm\}"
+    r"|\\begin\{corollary\}(?P<cor>.*?)\\end\{corollary\}"
+    r"|\\begin\{align\}(?P<align>.*?)\\end\{align\}"
     r"|\\begin\{equation\}(?P<eq>.*?)\\end\{equation\}"
     r"|\\begin\{(?P<lstype>itemize|enumerate)\}(?P<lst>.*?)\\end\{(?P=lstype)\}"
     r"|\\begin\{proposition\}(?P<prop>.*?)\\end\{proposition\}"
@@ -440,6 +572,7 @@ for m in pattern.finditer(body):
     pos = m.end()
     g = m.groupdict()
     if g["sec"] is not None:
+        close_wide()
         raw = m.group(0)
         if "\\section*" in raw:
             story.append(Paragraph(inline(g["sec"]), S["h1s"]))
@@ -448,18 +581,39 @@ for m in pattern.finditer(body):
             subn = 0
             story.append(Paragraph(f"{secn}. " + inline(g["sec"]), S["h1"]))
     elif g["sub"] is not None:
+        close_wide()
         subn += 1
         story.append(Paragraph(f"{secn}.{subn}. " + inline(g["sub"]), S["h2"]))
     elif g["tbl"] is not None:
-        emit_table_env(g["tbl"])
+        emit_table_env(g["tbl"], avail=COL_W_G)
+    elif g["tbls"] is not None:
+        start_wide()
+        emit_table_env(g["tbls"], avail=BODY_W, wide=True)
+        end_wide()
     elif g["fig"] is not None:
-        emit_figure_env(g["fig"])
+        emit_figure_env(g["fig"], avail=COL_W_G)
+    elif g["figs"] is not None:
+        start_wide()
+        emit_figure_env(g["figs"], avail=BODY_W, wide=True)
+        end_wide()
+    elif g["alg"] is not None:
+        emit_algorithm(g["alg"])
+    elif g["cor"] is not None:
+        corn += 1
+        t = re.sub(r"\\label\{[^}]*\}", "", g["cor"])
+        story.append(Paragraph(f"<b>Corollary {corn}</b>. <i>" +
+                               inline(t, refmap) + "</i>", S["prop"]))
+    elif g["align"] is not None:
+        eqn += 1
+        im = render_eq(g["align"].replace("\\\\", " \\quad "), width_pt=COL_W_G - 26)
+        if im:
+            story.append(im)
     elif g["eq"] is not None:
         eqn += 1
-        im = render_eq(g["eq"])
+        im = render_eq(g["eq"], width_pt=COL_W_G - 26)
         if im:
-            et = Table([[im, Paragraph(f"({eqn})", S["body"])]],
-                       colWidths=[BODY_W - 34, 34])
+            et = Table([[im, Paragraph(f"({eqn})", S["eqn"])]],
+                       colWidths=[COL_W_G - 22, 22])
             et.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                                     ("ALIGN", (0, 0), (0, 0), "CENTER"),
                                     ("ALIGN", (1, 0), (1, 0), "RIGHT"),
@@ -490,7 +644,7 @@ for m in pattern.finditer(body):
         buf = [Paragraph(head + "<i>" + inline(sub[0], refmap) + "</i>", S["prop"])]
         for j in range(1, len(sub), 2):
             eqn += 1
-            im = render_eq(sub[j], width_pt=330)
+            im = render_eq(sub[j], width_pt=COL_W_G - 30)
             if im:
                 buf.append(im)
             if j + 1 < len(sub) and sub[j + 1].strip():
@@ -548,7 +702,19 @@ doc = BaseDocTemplate(OUT, pagesize=A4,
                       topMargin=MARGIN, bottomMargin=MARGIN,
                       title="CoopGCN — Array submission",
                       author="Louhichi, Nesmaoui, Lazaar")
-frame = Frame(MARGIN, MARGIN, BODY_W, PAGE_H - 2 * MARGIN, id="body")
-doc.addPageTemplates([PageTemplate(id="all", frames=[frame], onPage=on_page)])
+H = PAGE_H - 2 * MARGIN
+fl = Frame(MARGIN, MARGIN, COL_W_G, H, id="c1",
+           leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+fr = Frame(MARGIN + COL_W_G + GUTTER, MARGIN, COL_W_G, H, id="c2",
+           leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+fw = Frame(MARGIN, MARGIN, BODY_W, H, id="w",
+           leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+ftitle = Frame(MARGIN, MARGIN, BODY_W, H, id="t",
+               leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+doc.addPageTemplates([
+    PageTemplate(id="title", frames=[ftitle], onPage=on_page),
+    PageTemplate(id="two", frames=[fl, fr], onPage=on_page),
+    PageTemplate(id="wide", frames=[fw], onPage=on_page),
+])
 doc.build(story)
 print(f"wrote {OUT}")
