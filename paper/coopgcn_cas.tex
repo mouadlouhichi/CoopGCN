@@ -36,12 +36,12 @@
 \def\floatpagepagefraction{1}
 \def\textpagefraction{.001}
 
-\shorttitle{Shapley-derived credit assignment in graph convolutional networks}
+\shorttitle{Cooperative-game-inspired credit for long-tail graph CF}
 \shortauthors{M. Louhichi et al.}
 
-\title[mode = title]{CoopGCN: Shapley-derived credit assignment in graph
-convolutional networks via cooperative game theory for long-tail
-recommendation}
+\title[mode = title]{CoopGCN: Cooperative-game-inspired credit signals for
+long-tail exposure in graph collaborative filtering---a preliminary methods
+study}
 
 \author[1]{Mouad Louhichi}[orcid=0000-0000-0000-0000]
 \cormark[1]
@@ -64,57 +64,55 @@ Writing -- review and editing}
 \cortext[1]{Corresponding author.}
 
 \begin{abstract}
-Linear graph collaborative-filtering models weight interactions primarily by
-topology and therefore provide no explicit account of which historical edges
-contributed to a recommendation. We introduce \textbf{CoopGCN}, a
-Shapley-derived architecture with three cooperative games: edge-level credit
-($\mathbf{G_1}$), hyperedge-level group credit ($\mathbf{G_2}$), and
-training-interaction valuation and pruning ($\mathbf{G_3}$). An SVD
-contrastive channel supplies a global view, while a stop-gradient consistency
-loss distils Monte-Carlo credit estimates into an attention network so that no
-Shapley sampling is required at serving time.
+\textbf{Evidence status:} This is a preliminary methods study. Every benchmark
+cell is one retained run; no component, noise, attribution-faithfulness or
+wall-clock experiment is reported, and no comparative result is claimed to be
+statistically established.
 
-We separate properties of the exact Shapley allocation from those of the
-deployed model. Efficiency, symmetry, dummy player and additivity apply to the
-allocation $\phi$; the sigmoid modulation preserves only within-degree credit
-ordering, and attention distillation introduces an unbounded approximation gap.
-A per-edge result bounds Channel-A weight deviation from its zero-credit
-reference by $\lambda\epsilon/(4\tau\sqrt{d_ud_i})$; it is not a bound on
-end-to-end ranking robustness.
+Linear graph collaborative-filtering models do not natively expose a utility
+signal for weighting individual historical interactions. We formulate ideal
+cooperative games over edges, hyperedges and training interactions and derive
+local properties of exact Shapley credit. We then describe the executable
+\textbf{CoopGCN} configuration used for the retained measurements. Importantly,
+that configuration uses deterministic game-inspired credit proxies---centered
+edge alignment with a tail bonus, affinity-and-tail hyperedge weights, and
+score-and-tail sample reweighting---rather than permutation Monte-Carlo or TMC
+Shapley estimators. The theoretical axioms therefore apply to the ideal credit
+allocation, not to the measured proxy implementation or its distilled
+attention weights.
 
-Single-run measurements across five datasets and ten models provide
-preliminary evidence of an accuracy--exposure trade-off. Among direct
-hypergraph/cooperative peers, CoopGCN has the highest NDCG@20 on four of five
-datasets and the highest Tail Recall and Coverage@20 on all five. On ML-1M,
-however, it records NDCG@20 $=0.1994$, below all six graph comparators shown,
-while attaining TR@20 $=0.0075$ and Coverage@20 $=40.7\%$. On Yelp2018 and
-Amazon-Book it records the highest graph-model NDCG@20, 0.0376 and 0.0235.
-GAT-CF is stronger on the two dense benchmarks but collapses on the three sparse benchmarks;
-because its collapse is not yet supported by tuning traces, this comparison is
-preliminary rather than a definitive verdict on attention. No multi-seed,
-measured noise-injection, component-ablation, attribution-faithfulness, or
-wall-clock study is available. We therefore claim evidence for a
-regime-dependent distributional effect, not universal accuracy, robustness,
-explainability, or efficiency superiority.
+Single-run measurements across five datasets and ten models motivate an
+accuracy--exposure hypothesis. Among the selected hypergraph/cooperative peers,
+CoopGCN has the highest NDCG@20 point estimate on four of five datasets and the
+highest Tail Recall and Coverage@20 point estimates on all five. On ML-1M,
+however, its NDCG@20 is 0.1994, below all six measured graph comparators, while
+TR@20 is 0.0075 and Coverage@20 is 40.7\%. The retained GAT-CF configuration
+performs better on the two dense benchmarks and substantially worse on the
+three sparse benchmarks; absent tuning traces, this is a configuration-level
+observation, not evidence against attention generally. Cross-model
+NDCG--coverage associations change sign by dataset and are sensitive to model
+membership. The results support only a descriptive, regime-dependent
+accuracy--exposure pattern that requires multi-seed and controlled ablation
+confirmation.
 \end{abstract}
 
 \begin{highlights}
-\item Three cooperative games assign credit to edges, hyperedges and training
-interactions in graph collaborative filtering.
-\item Theoretical guarantees are restricted to Shapley credit; deployed
-weights preserve only within-degree ordering up to distillation error.
-\item Single-run measurements show strong tail exposure but an accuracy cost
-on dense ML-1M.
-\item CoopGCN leads direct hypergraph/cooperative peers in NDCG on four of five
-measured datasets and in Tail Recall and Coverage on all five.
-\item Serving performs no Monte-Carlo Shapley sampling; residual attention
-latency remains unmeasured.
+\item Preliminary methods study: every benchmark value is a single-run point
+estimate.
+\item Ideal Shapley theory is separated from the deterministic credit proxies
+used by retained checkpoints.
+\item Retained measurements suggest strong tail exposure but an ML-1M accuracy
+cost.
+\item Cross-model NDCG--coverage association changes sign across density
+regimes.
+\item Component, robustness, explanation and runtime effects remain
+unmeasured.
 \end{highlights}
 
 \begin{keywords}
-Recommender systems \sep Graph convolutional networks \sep Cooperative game
-theory \sep Shapley value \sep Popularity bias \sep Long-tail recommendation
-\sep Robustness to noisy interactions \sep Credit assignment
+Recommender systems \sep Graph collaborative filtering \sep Cooperative game
+theory \sep Credit signals \sep Popularity bias \sep Long-tail exposure \sep
+Preliminary methods study
 \end{keywords}
 
 \maketitle
@@ -142,7 +140,7 @@ mechanistic hypotheses in this manuscript, not measured findings. Throughout,
 \emph{credit assignment} means allocating training and propagation influence;
 it does not mean that the credits are faithful human-facing explanations. We
 treat explanation faithfulness as a separate, unexecuted evaluation protocol
-in Section~\ref{sec:xai-protocol}.
+in Section~\ref{sec:future}.
 
 \subsection{The LightGCN paradigm and its core trade-off}
 \label{sec:paradigm}
@@ -182,10 +180,12 @@ they do for popular-but-incidental and rare-but-deliberate interactions alike,
 the model has no parameter with which to tell them apart.
 
 Three consequences follow directly, and they are precisely the three symptoms
-above. The model cannot \emph{denoise}, because it cannot identify a
-low-value edge. It cannot \emph{explain}, because it has no per-interaction
-attribution to report. And it cannot \emph{resist} an adversary, because an
-injected edge is trusted exactly as much as an observed one.
+above. The model does not natively expose a utility-based reliability score
+for an edge or an intrinsic interaction-level attribution, although post-hoc
+explainers can be applied. Its fixed weighting also provides no explicit
+mechanism for discounting a corrupted edge. These are architectural
+limitations, not evidence that LightGCN cannot be explained or cannot perform
+well under every corruption process.
 
 \subsection{Four structural failure modes of unweighted propagation}
 \label{sec:failuremodes}
@@ -262,84 +262,61 @@ every theoretical claim in this paper. The axioms characterise the
 \emph{allocation} $\phi$. They do not automatically characterise the
 propagation weight we deploy, which is a bounded, strictly positive transform
 of $\phi$ (Eq.~\eqref{eq:edgeweight}). A dummy player receives $\phi = 0$ and
-therefore the \emph{minimum} attainable modulation, not zero weight. What the
-axioms deliver is a principled, monotone ordering of neighbours by contribution
-together with a floor on how little influence a worthless edge can retain;
-what they do not deliver is deletion of that edge. We therefore describe
-CoopGCN throughout as \emph{Shapley-derived} rather than axiom-preserving at
-the deployed-weight level,
-and Section~\ref{sec:gap} makes the separation precise.
-
-The distinction between axiomatic and heuristic credit is therefore an
-empirical question with a sharp form---\emph{is Shapley just expensive
-attention?}---which we formalise in Section~\ref{sec:central} as a
-make-or-break ablation with a victory condition fixed in advance.
+therefore neutral modulation, not zero weight. Negative credit is required for
+down-modulation. These statements concern the ideal allocation; the retained
+implementation uses deterministic proxies with no axiom guarantee
+(Section~\ref{sec:retained}). We therefore call its signals
+cooperative-game-inspired rather than axiom-preserving or validated
+explanations.
 
 \subsection{Summary of contributions}
 \label{sec:contrib}
 
 \begin{enumerate}
-\item \textbf{A diagnosis, not a list.} We catalogue twelve representational
-and training weaknesses of linear graph CF, grade them by severity, map each
-to the literature documenting it, and show that the high-severity subset
-reduces to three root causes---credit is flat, structure is pairwise-only, and
-the training recipe amplifies the head (Section~\ref{sec:taxonomy}). Each
-recent improvement to LightGCN patches exactly one; CoopGCN targets all three.
+\item \textbf{A scoped taxonomy.} We organise twelve reported graph-CF
+limitations into three author-assessed themes: flat credit, pairwise-only
+structure and head-amplifying training choices. Many methods address one or a
+subset; CoopGCN is designed to combine several responses.
 
-\item \textbf{Tri-level cooperative game framework.} We formulate cooperative
-games at the edge level ($\mathbf{G_1}$), hyperedge level ($\mathbf{G_2}$,
-extending DyHuCoG) and data level ($\mathbf{G_3}$, TMC-Shapley valuation on
-holdout NDCG), giving explicit characteristic functions for each and combining
-them in a single trainable architecture (Section~\ref{sec:arch}).
+\item \textbf{Ideal games with explicit implementation correspondence.} We
+formulate edge, hyperedge and data-level cooperative games, then state exactly
+where the retained executable path substitutes deterministic alignment,
+affinity/tail and score/tail proxies (Section~\ref{sec:retained}).
 
-\item \textbf{Theory that constrains the design.} We prove that Channel~A
-recovers LightGCN propagation at $\lambda = 0$ when all other channels are
-disabled, and reduces to a scalar-modulated family under symmetric utility
-(Proposition~\ref{prop:recovery}). For a single Channel-A edge, deviation from
-the zero-credit reference is at most
-$\lambda\epsilon/(4\tau\sqrt{d_ud_i})$
-(Proposition~\ref{prop:robust}). Section~\ref{sec:gap} explains why neither
-statement is a guarantee about the complete deployed model or ranking
-robustness.
+\item \textbf{Local theory.} Channel~A contains LightGCN propagation at
+$\lambda=0$ and an ideal exact-credit edge has deviation at most
+$\lambda\epsilon/(2\tau\sqrt{d_ud_i})$ from its zero-credit reference under
+Proposition~\ref{prop:robust}. Neither proposition is a guarantee for the
+proxy-based measured model.
 
-\item \textbf{Shapley-derived credit distilled out of the serving path.} A
-stop-gradient EMA consistency loss trains learnable attention to track Shapley
-credits, so all Monte-Carlo computation is confined to training
-(Section~\ref{sec:zero}). We report this as an architectural property; the
-wall-clock cost of the residual attention network is not measured
-(Section~\ref{sec:limitations}).
+\item \textbf{Reproducible preliminary protocol.} We pin data sources, specify
+candidate filtering, hyperedge generation, all retained CoopGCN constants and
+the single seed, and release a machine-readable 5-dataset/10-configuration
+record.
 
-\item \textbf{Leakage-audited preliminary measurement with explicit
-limits.} A common temporal protocol provides single-run measurements for ten
-models on five datasets. The data support a distributional advantage and
-sparse-regime competitiveness, but not universal accuracy superiority.
-Projection-only ablations and noise curves have been removed from the evidence
-section rather than presented as findings (Sections~\ref{sec:provenance} and
-\ref{sec:limitations}).
+\item \textbf{Descriptive evidence with explicit limits.} The retained point
+estimates motivate an accuracy--exposure hypothesis and a density-dependent
+cross-model association. No component, robustness, explanation, runtime or
+statistical-stability claim is made.
 \end{enumerate}
 
 \paragraph{Objectives}
-The \emph{primary objective} of this study is to determine whether Shapley-derived
-credit assignment is a viable
-replacement for the fixed degree-normalised weighting of linear graph CF---and
-specifically whether it changes long-tail exposure without sacrificing
-top-$K$ accuracy. Noise resilience and serving cost are pre-specified but
-currently unmeasured secondary questions. The other objectives are: (i) to
-establish that Channel~A contains LightGCN propagation as a boundary case; (ii)
-to specify an ablation capable of quantifying each game level, while reporting
-that measured component effects are not yet available; (iii) to compare the
-Shapley-derived route with heuristic learnable attention under
-matched capacity---the central question of the paper, for which we fix a
-victory condition in advance in Section~\ref{sec:central}; and (iv) to report
-every number with explicit provenance so that the boundary between measured,
-measured and unmeasured evidence is visible to the reader.
+The primary objective is to specify a cooperative-game-inspired graph-CF
+architecture and report preliminary measured accuracy and exposure point
+estimates under a leakage-audited protocol. The secondary objectives are to
+separate ideal Shapley properties from the deterministic proxies in the
+released implementation, compare the retained configuration descriptively with
+selected graph and non-graph models, and pre-specify the confirmatory
+experiments required to test component causality, attribution faithfulness,
+noise response and cost. Those confirmatory questions are future work rather
+than research questions claimed as answered here.
 
 \paragraph{Roadmap}
 Section~\ref{sec:related} surveys related work and presents the taxonomy;
 Section~\ref{sec:theory} develops the axiomatic foundation and the two
 propositions; Section~\ref{sec:arch} specifies the architecture;
 Section~\ref{sec:complexity} analyses cost; Section~\ref{sec:design} details
-the protocol; Section~\ref{sec:results} reports results against RQ1--RQ5; and
+the protocol; Section~\ref{sec:results} reports the two descriptive research questions; and
 Section~\ref{sec:conclusion} concludes with limitations and future work.
 
 %==========================================================================
@@ -366,12 +343,11 @@ filtering. Contrastive and denoising models form a parallel line: SGL
 \citep{wu2021sgl} augments the graph by stochastic dropout under an InfoNCE
 objective; SimGCL \citep{yu2022simgcl} shows uniform embedding-space noise
 outperforms structural augmentation; XSimGCL \citep{yu2024xsimgcl} simplifies
-this further to a single-pass noise perturbation and, importantly for us,
-attributes its long-tail benefit to more uniformly distributed
-representations rather than to any notion of interaction value; and LightGCL
-\citep{cai2023lightgcl} replaces stochastic augmentation with SVD-truncated
-contrastive augmentation. We adopt the LightGCL-style channel because its
-determinism composes cleanly with Monte-Carlo Shapley estimation. A recent
+this further to a single-pass noise perturbation and attributes its long-tail
+benefit to more uniformly distributed representations rather than to any
+notion of interaction value; LightGCL \citep{cai2023lightgcl} replaces
+stochastic augmentation with SVD-truncated contrastive augmentation. We adopt
+a rank-16 LightGCL-style target as a separate regulariser. A recent
 survey of self-supervised recommendation \citep{yu2024sslsurvey} confirms the
 pattern across this family. Critically, all of these methods retain
 topology-determined, value-agnostic edge weights: contrastive learning changes
@@ -383,22 +359,21 @@ by other means. \emph{Attention} was the first attempt to make neighbour
 weights adaptive: GAT \citep{velickovic2018gat} assigns learned coefficients
 via masked self-attention, and this is precisely the heuristic alternative
 against which our axiomatic construction is positioned
-(Section~\ref{sec:central}). \emph{Denoising} methods target edge reliability
+(Section~\ref{sec:future}). \emph{Denoising} methods target edge reliability
 directly---T-CE \citep{wang2021denoising} down-weights high-loss interactions
 as likely false positives, and RGCF \citep{tian2022rgcf} combines hard pruning
 with soft reliability weights inside GNN message passing. RGCF is the closest
 prior work in spirit to our $\mathbf{G_1}$: both modulate propagation by an
 estimated per-edge reliability. The difference is the source of that estimate.
-RGCF learns reliability from training loss, which is a model-internal signal
-that can rationalise its own errors; $\mathbf{G_1}$ derives it from marginal
-contribution to a held-out value function, and inherits a dummy-player property at the credit level: a non-contributing
-edge receives zero Shapley credit and therefore the minimum modulation, not
-zero propagation weight.
+RGCF learns reliability from training loss. Ideal $\mathbf G_1$ instead defines
+marginal coalition credit, for which a dummy receives zero credit and neutral
+modulation under Eq.~\eqref{eq:edgeweight}. The retained implementation uses a
+centered alignment proxy rather than held-out marginal contribution.
 
 Two methodological studies inform our evaluation design. Dacrema et al.
 \citep{dacrema2019worrying} showed that many reported neural recommender gains
-vanish against properly tuned baselines, motivating our symmetric tuning
-budget; and replication analyses of LightGCN \citep{peska2023lightgcn}
+vanish against properly tuned baselines, motivating our explicit warning that
+tuning traces are missing; and replication analyses of LightGCN \citep{peska2023lightgcn}
 document that reported numbers swing materially with normalisation and split
 choices, motivating the leakage audit of Section~\ref{sec:leakage}.
 
@@ -412,33 +387,13 @@ DyHuCoG \citep{louhichi2026dyhucog} pioneered preference-aware Monte-Carlo
 Shapley weighting for hypergraph recommenders, injecting coalition-derived
 contribution scores as dynamic hyperedge weights.
 
-Our work extends DyHuCoG in three respects, summarised in
-Table~\ref{tab:vsdyhucog}: we introduce edge-level Shapley weighting
-($\mathbf{G_1}$), integrate data valuation ($\mathbf{G_3}$), and add an SVD
-contrastive channel to prevent dimensional collapse. In our framework DyHuCoG
-is exactly the $\mathbf{G_2}$-only configuration, which is why it serves as the
-direct ablation target throughout Section~\ref{sec:results}.
+DyHuCoG is the conceptual predecessor for the ideal hyperedge game. The
+retained CoopGCN code does not reproduce its member-level Shapley estimator:
+it uses the deterministic group proxy in Eq.~\eqref{eq:g2proxy}, adds an edge
+proxy and sample reweighting, and includes an SVD contrastive channel.
+Accordingly, DyHuCoG is a related configuration rather than a controlled
+$\mathbf G_2$-only ablation.
 
-\begin{table}[t]
-\centering
-\caption{CoopGCN relative to DyHuCoG, its direct predecessor and the
-$\mathbf{G_2}$-only configuration of the present framework.}
-\label{tab:vsdyhucog}
-\footnotesize
-\begin{tabular}{p{1.35cm}p{2.35cm}p{3.05cm}}
-\toprule
-\textbf{Dimension} & \textbf{DyHuCoG} & \textbf{CoopGCN (this work)} \\
-\midrule
-Shapley scope & Hyperedge weighting ($\mathbf{G_2}$) only & Edges
-($\mathbf{G_1}$) $+$ hyperedges ($\mathbf{G_2}$) $+$ data ($\mathbf{G_3}$) \\
-Propagation & Hypergraph only & Dual channel: pairwise graph $+$ hypergraph \\
-Dimensional collapse & Not addressed & SVD-truncated contrastive view \\
-Inference path & Game computed at inference & No MC sampling via
-$\mathcal{L}_{\mathrm{game}}$ \\
-Protocol & Random splits & Temporal split $+$ leakage audit \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 \subsection{Explainable AI and Shapley values in machine learning}
 \label{sec:rw-xai}
@@ -452,14 +407,17 @@ explaining unsupervised clustering and black-box models
 \citep{louhichi2023shapley}. The obstacle to using Shapley values \emph{inside}
 a model rather than as post-hoc explanation is cost: exact computation
 requires $O(2^{|\mathcal{N}|})$ evaluations. Section~\ref{sec:complexity}
-describes the restricted coalitions, permutation sampling and periodic refresh
-that make in-training estimation tractable, and Section~\ref{sec:zero} removes
-the cost from inference entirely.
+states the cost of an ideal permutation estimator and the lower cost of the
+deterministic proxies actually used. This manuscript does not evaluate
+explanation faithfulness.
 
 \subsection{Explaining graph neural networks}
 \label{sec:rw-gnnxai}
 
-A parallel literature explains \emph{trained} GNNs post hoc. GNNExplainer
+Recommendation-specific explanation also distinguishes internal feature or
+interaction importance from user-facing reasons and their fidelity
+\citep{zhang2020explainable}. A parallel literature explains \emph{trained}
+GNNs post hoc. GNNExplainer
 \citep{ying2019gnnexplainer} learns a soft edge/feature mask maximising mutual
 information with the prediction; PGExplainer \citep{luo2020pgexplainer}
 amortises that search into a parametric network so explanations generalise
@@ -467,7 +425,7 @@ inductively; and SubgraphX \citep{yuan2021subgraphx} searches connected
 subgraphs by Monte-Carlo tree search scored with Shapley values. The taxonomic
 survey of Yuan et al. \citep{yuan2023taxonomic} organises this space and, more
 usefully for us, standardises the fidelity/sparsity metrics by which such
-methods are judged --- the metrics our Section~\ref{sec:xai-protocol} adopts.
+methods are judged --- the metrics our Section~\ref{sec:future} adopts.
 
 SubgraphX is the closest prior work in machinery, since it too computes
 Shapley values over graph structure, and the distinction is worth stating
@@ -476,26 +434,21 @@ explanatory}: the model is frozen, and Shapley values are computed afterwards
 to describe a decision already made. CoopGCN is \emph{intrinsic and
 constitutive}: Shapley values are computed during training and change the
 propagation weights, so they alter the decision rather than describing it.
-The two are complementary rather than competing --- one could run SubgraphX on
-a trained CoopGCN. This also means the comparison is not head-to-head on
-accuracy; the appropriate comparison, which we do not run, is whether
-CoopGCN's intrinsic credits are as faithful as SubgraphX's post-hoc ones
-(Section~\ref{sec:xai-protocol}).
+The two are complementary rather than current experimental comparators. If the
+internal proxies are later positioned as explanations, GNNExplainer,
+PGExplainer and SubgraphX are future faithfulness baselines
+(Section~\ref{sec:future}); no such comparison is reported here.
 
-The relationship to FastSHAP \citep{jethani2022fastshap} is closer still on
-the mechanics: FastSHAP trains a network to emit Shapley values in a single
-forward pass, which is precisely the amortisation our
-$\mathcal{L}_{\mathrm{game}}$ performs for $a_{ui}$. We differ in purpose ---
-FastSHAP amortises to accelerate explanation, we amortise to remove
-game-theoretic computation from the serving path --- but the approximation
-question their work raises applies directly to ours, and
-Section~\ref{sec:gap} states it as the unbounded quantity $\delta$. Covert et
+FastSHAP \citep{jethani2022fastshap} is mechanistically adjacent because it
+amortises a credit target into a network. Unlike FastSHAP, our retained target
+is $\bar q_{ui}$, not a Shapley value, and we do not evaluate approximation to
+exact credit. Section~\ref{sec:gap} defines the unmeasured distillation gap. Covert et
 al. \citep{covert2021removing} give the unifying account of removal-based
 explanation that clarifies which axioms survive which approximations, and we
 follow their framing in separating properties of $\phi$ from properties of the
 deployed weight.
 
-\subsection{Popularity bias mitigation and robustness}
+\subsection{Popularity bias and reliability context}
 \label{sec:rw-bias}
 
 Popularity bias in graph CF is well documented and systematised in the survey
@@ -529,12 +482,12 @@ inherited from the confidence-weighted implicit-feedback formulation
 threat model matters here: Z\"ugner et al. \citep{zugner2018adversarial} showed
 that graph neural networks are vulnerable to \emph{targeted} structural
 perturbations optimised against the model, which are strictly stronger than
-the random edge injection protocol pre-specified in Section~\ref{sec:rq34}.
+the random edge injection protocol pre-specified in Section~\ref{sec:future}.
 The retained measured record contains no random- or targeted-injection result,
 so we make no empirical robustness claim. Data
-Shapley \citep{ghorbani2019datashapley} established that valuing and pruning
-low-contribution samples improves robustness, which $\mathbf{G_3}$ adapts to
-the interaction graph. Whether contrastive augmentation or data valuation provides protection under
+Shapley \citep{ghorbani2019datashapley} motivates data valuation. The ideal
+$\mathbf G_3$ formulation adapts that idea to interactions, whereas the
+retained executable path only reweights a deterministic score-and-tail proxy. Whether contrastive augmentation or data valuation provides protection under
 this protocol remains an open empirical question.
 
 \subsection{Systematic taxonomy of limitations}
@@ -551,8 +504,8 @@ pairwise-only} (W5, W9): preference lives in groups, and pairwise edges
 approximate groups poorly exactly where data is sparse and group evidence is
 strongest. \emph{The recipe amplifies the head} (W3, W7, W8): uniform
 negatives, uniform weights and mean pooling jointly reward recommending
-popular items. Each recent improvement to LightGCN patches exactly one of the
-three; CoopGCN is organised to attack all three simultaneously.
+popular items. Many recent improvements primarily address one or a subset of
+these factors; CoopGCN is organised to address several simultaneously.
 
 \begin{table*}[t]
 \centering
@@ -657,15 +610,17 @@ $\bar{\mathbf{e}}_u \cdot \bar{\mathbf{e}}_i$ \\
 $\mathcal{H}=(\mathcal{V},\mathcal{E}_H)$ & Hypergraph; $D_v,D_h$ degree
 matrices \\
 $\Gamma=(\mathcal{N},v)$ & Cooperative game with value function $v$ \\
-$\phi_j,\hat{\phi}_j$ & Exact and Monte-Carlo Shapley value of player $j$ \\
-$w_{ui}$ & Edge weight in Channel A ($\mathbf{G_1}$) \\
-$\beta_h$ & Hyperedge weight in Channel B ($\mathbf{G_2}$) \\
-$\gamma_{ui}$ & Sample weight from $\mathbf{G_3}$, $\in[1,1+\kappa]$ \\
-$a_{ui}$ & Learnable attention logit distilled from
-$\bar{\hat{\phi}}_{ui}$ \\
-$\bar{\hat{\phi}}_{ui}$ & EMA of historical Shapley estimates \\
-$\lambda,\tau$ & Modulation strength and temperature \\
-$L,T,P,M$ & Coalition cap, permutations, refresh periods \\
+$\phi_j$ & Exact Shapley value in a fixed ideal game \\
+$\hat{\phi}_j$ & Conceptual permutation estimate for a fixed restricted game;
+not used by retained checkpoints \\
+$q_{ui},\bar q_{ui}$ & Retained deterministic edge proxy and its EMA \\
+$r_{ui},\bar r_{ui}$ & Retained deterministic data proxy and its EMA \\
+$w_{ui}$ & Deployed Channel-A edge weight \\
+$\beta_h$ & Retained deterministic hyperedge weight \\
+$\gamma_{ui}$ & Retained sample weight, $\in[1,1.01]$ \\
+$a_{ui}$ & Learnable attention logit distilled from $\bar q_{ui}$ \\
+$\lambda,\tau$ & Ideal modulation strength and positive temperature \\
+$L,P,M$ & Neighbour cap and proxy refresh periods \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -697,9 +652,10 @@ Symmetry & If $v(S \cup \{i\}) = v(S \cup \{j\})$ for all $S$, then $\phi_i =
 credit modulation is equal, although the full propagation weights can still
 differ through $1/\sqrt{d_ud_i}$. \\
 Dummy player & If $v(S \cup \{i\}) = v(S)$ for all $S$, then $\phi_i = 0$:
-noisy misclicks and uninformative neighbours receive zero \emph{credit}. Note
-that zero credit maps to the minimum modulation
-$(1-\lambda)+\lambda\sigma(0)$, not zero \emph{weight}
+a true dummy neighbour receives zero \emph{credit}; a noisy edge need not be a
+dummy. Note
+that zero credit maps to neutral modulation $1$, not zero \emph{weight};
+negative credit is required for down-modulation
 (Section~\ref{sec:gap}). \\
 Additivity & $\phi_i(v_1 + v_2) = \phi_i(v_1) + \phi_i(v_2)$: under a
 multi-task objective (accuracy $+$ tail diversity) credits decompose linearly
@@ -716,8 +672,8 @@ across tasks. \\
 Let the edge-level aggregation weight in Channel~A be parameterised as
 \begin{equation}
 w_{ui} = \frac{1}{\sqrt{d_u d_i}}
-\Bigl[ (1-\lambda) + \lambda\, \sigma\bigl(\hat{\phi}_{ui}/\tau\bigr) \Bigr],
-\quad \lambda \in [0,1].
+\Bigl[1 + 2\lambda\bigl(\sigma(\hat{\phi}_{ui}/\tau)-\tfrac12\bigr)\Bigr],
+\quad \lambda \in [0,1],\;\tau>0.
 \label{eq:edgeweight}
 \end{equation}
 Then: (i) when $\lambda = 0$, Channel~A recovers standard LightGCN symmetric
@@ -735,8 +691,8 @@ $w_{ui} = 1/\sqrt{d_u d_i}$, which is exactly Eq.~\eqref{eq:lightgcn}. For
 for every interchangeable pair, and efficiency then fixes the common value at
 $\phi_i = v(\mathcal{N})/|\mathcal{N}|$. Writing $c = \sigma(\phi_i/\tau)$,
 which is independent of $i$, Eq.~\eqref{eq:edgeweight} becomes $w_{ui} =
-\kappa/\sqrt{d_u d_i}$ with $\kappa = (1-\lambda) + \lambda c$ a
-degree-dependent constant, yielding the same scalar-modulated functional family used by
+\kappa/\sqrt{d_u d_i}$ with $\kappa = 1+2\lambda(c-1/2)$ a uniform
+modulation, yielding the same scalar-modulated functional family used by
 LightGCN++. This is a structural analogy, not recovery of every LightGCN++
 normalisation and training detail.
 \end{proof}
@@ -759,27 +715,33 @@ Eq.~\eqref{eq:infweight}). Three separate approximations therefore sit between
 the theory and the artefact, and we state them plainly rather than leave them
 implicit.
 
-\emph{Estimation.} $\hat{\phi}$ is a Monte-Carlo estimate from $R$
-permutations over coalitions capped at $L$, so it is an unbiased but noisy
-proxy for $\phi$, with variance $O(1/R)$ \citep{castro2009polynomial}. The
-axioms hold for $\phi$; they hold for $\hat{\phi}$ only in expectation.
+\emph{Ideal estimation.} Conditional on a fixed capped player set and
+finite marginal-contribution variance, the standard independent-permutation
+estimator is unbiased for that \emph{restricted} game with variance
+$O(1/R)$ \citep{castro2009polynomial}; it is not an unbiased estimator of the
+uncapped neighbourhood game. For complete marginal vectors, efficiency
+(telescoping) and the dummy property hold for each sampled permutation;
+additivity holds samplewise if the same permutations are reused across games;
+symmetry generally holds only in expectation unless sampling is paired. The
+retained executable configuration does not run this estimator: it uses the
+proxies stated in Section~\ref{sec:retained}, for which none of the four axioms
+is guaranteed.
 
-\emph{Transformation.} The map $\phi \mapsto (1-\lambda) +
-\lambda\sigma(\phi/\tau)$ is strictly monotone but neither linear nor
-zero-preserving. Monotonicity means the \emph{ordering} induced by symmetry
-and dummy player survives: equal-contribution neighbours receive equal modulation. Full weights also
-depend on degree, and a zero-contribution neighbour receives the minimum
-modulation in the family. Efficiency and additivity do \emph{not} survive, because a sigmoid of
-a sum is not the sum of sigmoids. Any claim in this paper that depends on
-efficiency or additivity is therefore a claim about $\phi$, not about
-$w_{ui}$.
+\emph{Transformation.} For $\tau>0$ the map
+$g(\phi)=1+2\lambda(\sigma(\phi/\tau)-1/2)$ is nondecreasing, and is strictly
+increasing only when $\lambda>0$. Within a fixed degree context it preserves
+credit ordering; full propagation weights also depend on
+$1/\sqrt{d_ud_i}$. The transform is neither linear nor credit-preserving:
+efficiency and additivity do not survive, and zero credit maps to neutral
+rather than zero or minimum influence. Any axiom claim is therefore about
+exact $\phi$, not $g(\phi)$ or $w_{ui}$.
 
 \emph{Distillation.} At inference $\sigma(a_{ui}/\tau)$ replaces
 $\sigma(\bar{\hat{\phi}}_{ui}/\tau)$. Let $\delta = \sup_{(u,i)}
 |\sigma(a_{ui}/\tau) - \sigma(\bar{\hat{\phi}}_{ui}/\tau)|$ be the worst-case
 distillation gap at convergence. Substituting into
 Eq.~\eqref{eq:edgeweight} gives a deployed-weight error of at most
-$\lambda\delta/\sqrt{d_u d_i}$ per edge, so every guarantee above degrades
+$2\lambda\delta/\sqrt{d_u d_i}$ per edge, so every guarantee above degrades
 gracefully in $\delta$ rather than failing discontinuously. We do not,
 however, bound $\delta$ theoretically: $\mathcal{L}_{\mathrm{game}}$ drives it
 down but nothing forces it to zero. Measuring $\delta$ empirically, and the
@@ -787,18 +749,17 @@ $w/o\ \mathcal{L}_{\mathrm{game}}$ ablation that would reveal what the
 distillation is worth, are both listed as required experiments in
 Section~\ref{sec:limitations}.
 
-The honest summary is that CoopGCN is a \emph{Shapley-derived} architecture
-whose weights inherit the ordering properties of an axiomatic allocation, not
-an architecture whose deployed weights are Shapley values. We use the former
-phrasing throughout.
+The honest summary is two-level: the ideal Channel-A construction is
+Shapley-derived, while the retained measured implementation is only
+cooperative-game-inspired and uses $q_{ui}$. No axiom transfers to that proxy
+without a separate proof.
 
-\subsection{Proposition 2: robustness under uninformative perturbation}
+\subsection{Proposition 2: local ideal edge-credit deviation bound}
 \label{sec:prop2}
 
 \begin{proposition}[Channel-A per-edge deviation under bounded marginal utility]
 \label{prop:robust}
-Let $i^\ast \in \mathcal{N}(u)$ be an uninformative interaction
-interaction whose marginal embedding-consistency gain is bounded by
+Let $i^\ast \in \mathcal{N}(u)$ be an uninformative interaction whose marginal embedding-consistency gain is bounded by
 $|v_u^{\mathrm{cons}}(S \cup \{i^\ast\}) - v_u^{\mathrm{cons}}(S)| \le
 \epsilon$ for all $S \subseteq \mathcal{N}(u) \setminus \{i^\ast\}$, under the
 consistency utility of Eq.~\eqref{eq:vcons}. Let $w^{\phi}_{ui^\ast}$ denote
@@ -806,9 +767,9 @@ the ideal Channel-A weight of Eq.~\eqref{eq:edgeweight} with exact
 $\phi_{i^\ast}$ in place of $\hat{\phi}_{i^\ast}$. Then (i)
 $|\phi_{i^\ast}| \le \epsilon$; and (ii) the deviation of
 $w^{\phi}_{ui^\ast}$ from its zero-credit reference is at most
-$\lambda\epsilon / (4\tau\sqrt{d_u d_{i^\ast}})$. If the Monte-Carlo error is
+$\lambda\epsilon / (2\tau\sqrt{d_u d_{i^\ast}})$. If the Monte-Carlo error is
 $|\hat{\phi}_{i^\ast}-\phi_{i^\ast}|\le\rho$, the corresponding estimate-driven
-bound is $\lambda(\epsilon+\rho)/(4\tau\sqrt{d_u d_{i^\ast}})$. Standard
+bound is $\lambda(\epsilon+\rho)/(2\tau\sqrt{d_u d_{i^\ast}})$. Standard
 LightGCN instead assigns $1/\sqrt{d_u d_{i^\ast}}$ independently of credit.
 \end{proposition}
 
@@ -820,17 +781,17 @@ absolute value, $|\phi_{i^\ast}| \le \epsilon$. This establishes part (i).
 
 For (ii), write $w^{\mathrm{ref}}_{ui^\ast}$ for the ideal weight at exactly
 zero credit, namely
-$\bigl[(1-\lambda)+\lambda\sigma(0)\bigr]/\sqrt{d_u d_{i^\ast}}$ with
-$\sigma(0) = 1/2$. The sigmoid is globally Lipschitz with constant $1/4$, so
+$1/\sqrt{d_u d_{i^\ast}}$ because $\sigma(0)=1/2$. The sigmoid is
+globally Lipschitz with constant $1/4$, so
 \begin{equation}
 \bigl| w^{\phi}_{ui^\ast} - w^{\mathrm{ref}}_{ui^\ast} \bigr|
-= \frac{\lambda \bigl| \sigma(\phi_{i^\ast}/\tau) - \sigma(0) \bigr|}
+= \frac{2\lambda \bigl| \sigma(\phi_{i^\ast}/\tau) - \sigma(0) \bigr|}
        {\sqrt{d_u d_{i^\ast}}}
-\le \frac{\lambda \epsilon}{4\tau \sqrt{d_u d_{i^\ast}}} .
+\le \frac{\lambda \epsilon}{2\tau \sqrt{d_u d_{i^\ast}}} .
 \label{eq:weightgap}
 \end{equation}
 The estimate-driven bound follows from
-$|\hat{\phi}_{i^\ast}|\le |\phi_{i^\ast}|+ho\le\epsilon+\rho$ and the same
+$|\hat{\phi}_{i^\ast}|\le |\phi_{i^\ast}|+\rho\le\epsilon+\rho$ and the same
 Lipschitz argument.
 For a fixed layer input, the corresponding single-message deviation is this
 weight difference times $\lVert \mathbf{e}_{i^\ast}^{(k)} \rVert$. The
@@ -841,13 +802,11 @@ end-to-end embedding or NDCG robustness theorem.
 
 Two caveats must be stated explicitly, since the proposition is weaker than a
 casual reading suggests. First, the bound is on the deviation from the
-\emph{zero-credit reference weight}, not from zero: a noise edge still
-propagates with the floor weight $\bigl[(1-\lambda)+\lambda/2\bigr]/
-\sqrt{d_u d_{i^\ast}}$, which for our $\lambda = 0.03$ is $98.5\%$ of the
-LightGCN weight. Proposition~\ref{prop:robust} therefore does \emph{not} establish an
-end-to-end robustness margin. At $\lambda = 0.03$ the edge-weighting channel
-can account for only a small effect; whether $\mathbf{G_3}$ pruning provides
-noise resilience requires a measured intervention study that is not available. Second, the bound is per-layer and per-edge; composing it across
+\emph{zero-credit reference weight}, not from zero: zero credit receives
+exactly the LightGCN topological weight under Eq.~\eqref{eq:edgeweight}.
+Proposition~\ref{prop:robust} therefore does \emph{not} establish suppression,
+an end-to-end robustness margin, or a property of the deterministic proxy used
+in the retained run. Second, the bound is per-layer and per-edge; composing it across
 $K$ layers and $|\mathcal{N}(u)|$ neighbours introduces constants we do not
 control analytically.
 
@@ -866,16 +825,15 @@ attacks.
 
 CoopGCN processes collaborative filtering interactions through three
 complementary representations, shown in Fig.~\ref{fig:arch}. \textbf{Channel~A}
-(edge Shapley GCN) performs local bipartite propagation where pairwise edges
-are weighted by $\mathbf{G_1}$ Monte-Carlo Shapley values. \textbf{Channel~B}
-(hyperedge Shapley GCN) performs group-level propagation over hyperedges
-weighted by $\mathbf{G_2}$ preference-aware Shapley group credits.
+(edge-credit GCN) performs local bipartite propagation with the retained
+$\mathbf G_1$ alignment proxy. \textbf{Channel~B} (group-credit GCN) performs
+propagation over training-derived hyperedges weighted by the retained
+$\mathbf G_2$ affinity-and-tail proxy.
 \textbf{Channel~C} constructs an SVD-truncated low-rank global view of the
-interaction graph, acting as an InfoNCE contrastive target that suppresses
-dimensional collapse (W3). Their outputs are pooled across layers before
-ranking; $\mathbf{G_3}$ curates the training set offline; and
-$\mathcal{L}_{\mathrm{game}}$ distils the whole construction into attention
-weights usable at inference.
+interaction graph as an InfoNCE target intended to counter dimensional
+collapse (W3), an effect not isolated here. Outputs are mean-pooled across
+layers; $\mathbf G_3$ reweights training samples; and
+$\mathcal L_{\mathrm{game}}$ distils only the edge-proxy EMA into attention.
 
 \begin{figure*}[t]
 \centering
@@ -887,27 +845,23 @@ weights usable at inference.
 
 %% ---- three channels --------------------------------------------------
 \node[chan, anchor=north] (A) at (-5.6,-1.1)
-  {\textbf{Channel A --- edge game} $\mathbf{G_1}$\\[1pt]
-   1. Coalitions $S\subseteq\mathcal{N}(u)$, $|S|\le L$\\
-   2. $v_u^{\mathrm{cons}}(S)=-\lVert\frac{1}{|S|}\sum_{i\in S}
-      \mathbf{e}_i-\bar{\mathbf{e}}_u\rVert^2$\\
-   3. MC-Shapley $\hat{\phi}_{ui}$ over $T$ perms\\
-   4. $w_{ui}=\frac{1}{\sqrt{d_ud_i}}[(1{-}\lambda)+\lambda
-      \sigma(\hat{\phi}_{ui}/\tau)]$};
+  {\textbf{Channel A --- edge proxy} $\mathbf{G_1}$\\[1pt]
+   1. First $L=32$ training neighbours\\
+   2. Centered edge--user alignment\\
+   3. Tail bonus 0.05; standardise; EMA 0.85\\
+   4. Distil $\bar q_{ui}$ into attention};
 
 \node[chan, anchor=north] (B) at (0,-1.1)
-  {\textbf{Channel B --- group game} $\mathbf{G_2}$\\[1pt]
-   1. Hyperedges $h\in\mathcal{E}_H$ (train only)\\
-   2. $v_h(S)=\alpha\,\mathrm{aff}+\beta\,\mathrm{tail}
-      +\gamma\,\mathrm{div}$\\
-   3. Group Shapley $\hat{\phi}_j(h)$\\
-   4. $\beta_h=\sigma(\frac{1}{|h|}\sum_{j\in h}
-      \hat{\phi}_j(h)/\tau_h)$};
+  {\textbf{Channel B --- group proxy} $\mathbf{G_2}$\\[1pt]
+   1. Train-derived hyperedges $h$\\
+   2. Mean off-diagonal cosine affinity\\
+   3. Add $0.5\times$ tail share\\
+   4. $\beta_h=\sigma(q_h/0.5)$; mix weight 0.01};
 
 \node[chan, anchor=north] (C) at (5.6,-1.1)
   {\textbf{Channel C --- contrastive}\\[1pt]
    1. Global adjacency $\mathbf{A}$\\
-   2. Truncated SVD, rank $q$\\
+   2. Truncated SVD, rank 16\\
    3. Low-rank reconstructed graph\\
    4. Propagate $\mathbf{e}^g_u,\mathbf{e}^g_i$};
 
@@ -919,26 +873,23 @@ weights usable at inference.
 
 %% ---- G3 and the bridge ----------------------------------------------
 \node[band, anchor=north, minimum width=4.6cm] (G3) at (-3.1,-5.3)
-  {$\mathbf{G_3}$ \textbf{data valuation game}\\[1pt]
-   Players: training interactions $(u,i)$\\
-   Utility: holdout NDCG@20 (temporal val.)\\
-   TMC-Shapley every $M$ epochs\\
-   $\gamma_{ui}=1+\kappa\,\mathrm{rank}(\hat{\phi}^{\mathrm{data}}_{ui})$;
-   prune bottom $p\%$};
+  {$\mathbf{G_3}$ \textbf{sample-weight proxy}\\[1pt]
+   Score sigmoid $\times$ tail factor\\
+   EMA 0.80 every $M=20$ epochs\\
+   $\gamma_{ui}=1+0.01\,\mathrm{qrank}(\bar r_{ui})$\\
+   5\% mask computed but not applied};
 
 \node[band, anchor=north, minimum width=4.6cm] (LG) at (3.1,-5.3)
   {$\mathcal{L}_{\mathrm{game}}$ \textbf{inference bridge}\\[1pt]
    Learnable attention $a_{ui}$\\
-   EMA target $\bar{\hat{\phi}}_{ui}\leftarrow
-   \eta\bar{\hat{\phi}}_{ui}+(1{-}\eta)\hat{\phi}_{ui}$\\
+   EMA target $\bar q_{ui}\leftarrow0.85\bar q_{ui}+0.15q_{ui}$\\
    $\mathcal{L}_{\mathrm{game}}=
-   \lVert\sigma(a_{ui}/\tau)-\mathrm{sg}(\sigma(\bar{\hat{\phi}}_{ui}/\tau))\rVert^2$\\
-   Inference: $\sigma(a_{ui}/\tau)$ only; attention cost unmeasured};
+   \lVert\sigma(a_{ui})-\mathrm{sg}(\sigma(\bar q_{ui}))\rVert^2$\\
+   Inference: attention only; cost unmeasured};
 
 %% ---- objective -------------------------------------------------------
 \node[blk, minimum width=9.4cm, anchor=north] (loss) at (0,-8.05)
-  {$\mathcal{L}=\mathcal{L}_{\mathrm{rank}}\,(\text{gBCE},\,256\ \text{neg},\,
-   \gamma_{ui}\text{-weighted})
+  {$\mathcal{L}=\mathcal{L}_{\mathrm{rank}}\,(\text{weighted BPR},\,1\ \text{effective neg.})
    +\lambda_1\mathcal{L}_{\mathrm{cl}}\,(\text{InfoNCE})
    +\lambda_2\mathcal{L}_{\mathrm{game}}+\lambda_3\lVert\Theta\rVert^2$};
 
@@ -963,115 +914,143 @@ weights usable at inference.
   (LG.east) -- (7.75,-5.9) -- (7.75,-9.05) -- (-7.75,-9.05) -- (-7.75,-1.9);
 \draw[ar, dashed] (-7.75,-1.95) -- (A.west);
 \node[font=\tiny, anchor=south] at (0,-9.0)
-  {$\sigma(a_{ui}/\tau)$ used at inference --- no Shapley computation};
+  {Attention MLP used at inference --- no proxy refresh};
 \end{tikzpicture}
-\caption{The CoopGCN architecture. Channel~A applies edge-level Monte-Carlo
-Shapley weights ($\mathbf{G_1}$) to bipartite propagation; Channel~B applies
-group-level Shapley weights ($\mathbf{G_2}$) over hyperedges constructed
-strictly from training interactions; Channel~C supplies a deterministic
-SVD-truncated contrastive view countering dimensional collapse. The data-level
-game $\mathbf{G_3}$ reweights and prunes training samples offline. The
-consistency loss $\mathcal{L}_{\mathrm{game}}$ distils exponential
-moving-average Shapley credit into learnable attention $a_{ui}$, which alone is
-evaluated at inference (dashed path), so serving requires no game-theoretic
-computation.}
+\caption{Exact retained CoopGCN execution path. Channels A, B and G3 use the
+deterministic proxies of Eqs.~\eqref{eq:g1proxy}--\eqref{eq:g3proxy}; they are
+motivated by the ideal games but are not permutation Shapley estimators.
+Channel C supplies a rank-16 SVD contrastive target. The consistency loss
+distils the edge-proxy EMA into an attention MLP (dashed feedback path).}
 \label{fig:arch}
 \end{figure*}
 
-\subsection{$\mathbf{G_1}$: the edge-level pairwise cooperative game}
-\label{sec:g1}
+\subsection{Ideal games and retained executable proxies}
+\label{sec:retained}
 
-\paragraph{Game definition}
-For each user $u$ we define the local game $\Gamma_u = (\mathcal{N}(u), v_u)$
-over interaction neighbours $i \in \mathcal{N}(u)$.
+The cooperative games below define the method's target semantics. The retained
+checkpoints, however, were produced by deterministic proxies in the released
+code, not by permutation estimators. Table~\ref{tab:retained-config} and the
+formulas below state that distinction explicitly. Consequently, the measured
+results evaluate an integrated \emph{game-inspired proxy architecture}; they
+do not empirically validate exact or Monte-Carlo Shapley allocation.
 
-\paragraph{Value functions}
-For every local game we define $v(\emptyset)=0$. The formulas below apply to
-non-empty coalitions; we set $\mathrm{div}(S)=0$ for $|S|<2$. Embeddings used
-as utility targets are stop-gradient snapshots from the current refresh, so a
-coalition evaluation cannot move its own target. The default is the
-\emph{consistency utility}
-\begin{equation}
-v_u^{\mathrm{cons}}(S) = -\Bigl\lVert \frac{1}{|S|}
-\sum_{i \in S} \mathbf{e}_i - \bar{\mathbf{e}}_u \Bigr\rVert^2 ,
-\label{eq:vcons}
-\end{equation}
-which measures how accurately coalition $S$ reconstructs $u$'s full pooled
-embedding and costs $O(|S|d)$ per evaluation. Where the optimisation target is
-explicitly long-tail we admit the \emph{preference-aware utility}
-\begin{equation}
-v_u^{\mathrm{pref}}(S) = \alpha \frac{1}{|S|} \!\sum_{i \in S}\! s_{ui}
-+ \beta \,\mathrm{tail}(S) + \gamma \,\mathrm{div}(S),
-\label{eq:vpref}
-\end{equation}
-where $\mathrm{tail}(S)$ is the proportion of $S$ in the bottom-80\%
-popularity stratum and $\mathrm{div}(S) = \frac{1}{|S|(|S|-1)}\sum_{i \neq j}
-(1 - \cos(\mathbf{e}_i,\mathbf{e}_j))$. The $\beta$ and $\gamma$ terms close a
-specific back-door: were $v$ to reward predicted preference alone, high-degree
-items would earn high credit and the game would re-encode the very bias it is
-meant to remove.
+\subsubsection{$\mathbf{G_1}$: edge-level target game and proxy}
 
-\paragraph{Aggregation}
-Credits enter propagation through Eq.~\eqref{eq:edgeweight}, giving
-\begin{equation}
-\mathbf{e}_u^{(k+1)} = \sum_{i \in \mathcal{N}(u)} w_{ui}\,
-\mathbf{e}_i^{(k)} .
-\end{equation}
-
-\subsection{$\mathbf{G_2}$: the hyperedge-level group cooperative game}
-\label{sec:g2}
-
-\paragraph{Game definition}
-For each hyperedge $h \in \mathcal{E}_H$---a genre combination (ML-1M),
-business category (Yelp2018) or co-purchase category (Amazon-Book),
-constructed strictly from the training split---we define $\Gamma_h = (h, v_h)$
-whose players are the member items.
-
-\paragraph{Value function and propagation}
-We define $v_h(\emptyset)=0$, use the expression below for non-empty $S$, and
-set $\mathrm{div}(S)=0$ for $|S|<2$.
-\begin{equation}
-v_h(S) = \alpha \frac{1}{|S|^2} \!\!\sum_{j,k \in S}\!\! \mathrm{aff}(j,k)
-+ \beta\, \mathrm{tail}(S) + \gamma\, \mathrm{div}(S),
-\end{equation}
-with $\mathrm{aff}(j,k) = \cos(\mathbf{e}_j,\mathbf{e}_k)$ the pairwise
-affinity. The group credit and hypergraph convolution are
+For each user $u$, the ideal local game is
+$\Gamma_u=(\mathcal{N}(u),v_u)$. We set $v_u(\emptyset)=0$. Two candidate
+characteristic functions motivate the design for non-empty $S$:
 \begin{align}
-\beta_h &= \sigma \Bigl( \frac{1}{|h|} \textstyle\sum_{j \in h}
-\hat{\phi}_j(h)/\tau_h \Bigr) \in (0,1), \\
-\mathbf{e}_v^{(k+1)} &= \sum_{h \ni v} \frac{\beta_h}{\sqrt{D_v D_h}}
-\sum_{v' \in h} \frac{1}{\sqrt{D_h}} \mathbf{e}_{v'}^{(k)} .
+v_u^{\mathrm{cons}}(S)
+ &= -\left\lVert |S|^{-1}\!\sum_{i\in S}\mathbf e_i
+                 -\operatorname{sg}(\mathbf e_u)\right\rVert^2,
+\label{eq:vcons}\\
+v_u^{\mathrm{pref}}(S)
+ &= \alpha |S|^{-1}\!\sum_{i\in S}s_{ui}
+  +\beta\,\mathrm{tail}(S)+\gamma\,\mathrm{div}(S),
+\label{eq:vpref}
 \end{align}
-Setting $\beta_h \equiv 1$ recovers standard unweighted hypergraph CF of the
-DHCN/HCCF family.
+Under $v^{\mathrm{cons}}$, exact credit attributes reconstruction of the user
+embedding, not a particular item's score or rank. Under $v^{\mathrm{pref}}$ it
+attributes the stated coalition utility. We set $\mathrm{div}(S)=0$ for
+$|S|<2$; otherwise it is the mean pairwise cosine distance, with every norm clamped below by $10^{-8}$. The ideal
+preference utility is not instantiated by the retained run, so
+$\alpha,\beta,\gamma$ have no measured-configuration values.
 
-\subsection{$\mathbf{G_3}$: the data-level valuation game}
-\label{sec:g3}
-
-\paragraph{Game definition}
-Players are training interactions $(u,i) \in \mathcal{B}$, with
-$v^{\mathrm{ndcg}}(\emptyset)=0$ by definition; for non-empty $S$, the value
-function $v^{\mathrm{ndcg}}(S)$ is holdout NDCG@20 on the temporal validation
-split of a model trained on $S$.
-
-\paragraph{Valuation, reweighting and pruning}
-Full retraining per coalition being infeasible, we apply TMC-Shapley
-\citep{ghorbani2019datashapley} offline every $M$ epochs to obtain
-$\hat{\phi}^{\mathrm{data}}_{ui}$, then set
+The retained implementation uses neither expression to enumerate coalitions.
+For the first $L=32$ neighbours in training-adjacency order, it computes
 \begin{equation}
-\gamma_{ui} = 1 + \kappa \cdot
-\mathrm{rank}\bigl(\hat{\phi}^{\mathrm{data}}_{ui}\bigr) \in [1, 1+\kappa],
+q_{ui}=\mathbf e_i^\top\mathbf e_u
+-\frac{1}{|\mathcal N_L(u)|}\sum_{j\in\mathcal N_L(u)}
+ \mathbf e_j^\top\mathbf e_u
++0.05\,\mathbf 1[i\in\mathcal I_{\mathrm{tail}}],
+\label{eq:g1proxy}
 \end{equation}
-where $\mathrm{rank}(\cdot) \in [0,1]$ is the normalised quantile rank.
-Interactions in the bottom $p\%$ (we use $p = 5$) are flagged as
-noise or poisoning and pruned from the training graph. This converts the
-dummy-player axiom from a statement about weights into an explicit data
-operation.
+standardises $q_{ui}$ within the capped neighbourhood when its standard
+deviation exceeds $10^{-6}$, and updates
+$\bar q_{ui}\leftarrow0.85\bar q_{ui}+0.15q_{ui}$. Negative values represent
+below-neighbourhood alignment; positive values represent above-neighbourhood
+alignment. This centered alignment is a deterministic credit proxy, not a
+Shapley estimate of Eqs.~\eqref{eq:vcons} or \eqref{eq:vpref}.
 
-\subsection{Multi-task objective and consistency regularisation}
+\subsubsection{$\mathbf{G_2}$: hyperedge target game and proxy}
+
+The ideal group game is $\Gamma_h=(h,v_h)$, with $v_h(\emptyset)=0$ and a
+preference-aware affinity/tail/diversity value analogous to
+Eq.~\eqref{eq:vpref}. In the retained implementation, no member-level Shapley
+values are estimated. For a training-derived hyperedge $h$, embeddings are
+normalised with an $\ell_2$-norm floor of $10^{-8}$ and
+\begin{align}
+q_h &= \frac{1}{|h|(|h|-1)}\sum_{j\ne k\in h}
+       \cos(\mathbf e_j,\mathbf e_k)
+       +0.5\,\mathrm{tail}(h),\label{eq:g2proxy}\\
+\beta_h&=\sigma(q_h/0.5).
+\end{align}
+At each layer the pairwise and hypergraph outputs are mixed as
+$0.99\,\mathbf e^{\mathrm{pair}}+0.01\,\mathbf e^{\mathrm{hyper}}$.
+Thus $\beta_h$ is an affinity-and-tail group proxy, not a group Shapley
+allocation.
+
+\subsubsection{$\mathbf{G_3}$: data-value target game and proxy}
+
+The ideal data game takes training interactions as players and validation
+NDCG@20 after training on coalition $S$ as $v^{\mathrm{ndcg}}(S)$. The
+retained implementation does not retrain coalitions, query validation NDCG, or
+run TMC. Every $M=20$ epochs it computes
+\begin{equation}
+r_{ui}=\sigma(s_{ui})\times
+\begin{cases}1.02,&i\in\mathcal I_{\mathrm{tail}},\\0.99,&\text{otherwise},
+\end{cases}
+\qquad
+\bar r_{ui}\leftarrow0.80\bar r_{ui}+0.20r_{ui},
+\label{eq:g3proxy}
+\end{equation}
+and sets $\gamma_{ui}=1+0.01\operatorname{qrank}(\bar r_{ui})$. The released
+``double argsort'' assigns ordinal ranks; equal credits are not average-ranked
+and can be separated by array order.
+A bottom-5\% mask is calculated, but the retained trainer does not apply it to
+remove graph edges. The measured configuration therefore uses G3
+\emph{reweighting only}; any pruning or denoising effect remains untested.
+
+\begin{table*}[t]
+\centering
+\caption{Exact retained CoopGCN configuration represented by the released
+checkpoints. ``Proxy'' means that the executable quantity is motivated by a
+game but is not an exact, MC or TMC Shapley estimator.}
+\label{tab:retained-config}
+\footnotesize
+\begin{tabular}{p{2.6cm}p{5.6cm}p{7.0cm}}
+\toprule
+\textbf{Component} & \textbf{Retained setting} & \textbf{Evidence boundary}\\
+\midrule
+Initialisation & Seed 42; $d=64$; 3 layers; embeddings
+$\mathcal N(0,0.05^2)$ & One seed only\\
+Optimisation & Adam, lr $10^{-3}$, batch 2048, 64 negative IDs generated but
+weighted BPR uses only the first, up to 1000 epochs, patience 50 & No retained
+search trace\\
+$\mathbf G_1$ & Eq.~\eqref{eq:g1proxy}; $L=32$; tail bonus 0.05; EMA 0.85;
+refresh 5; temperature 0.5; $\lambda=0.03$; learned norm scale $\nu$ initial 1
+& Deterministic proxy; legacy
+permutation parameter 25 is unused\\
+$\mathbf G_2$ & Eq.~\eqref{eq:g2proxy}; affinity coefficient 1; tail
+coefficient 0.5; temperature 0.5; channel mixture 0.01 & Deterministic
+hyperedge proxy; no member Shapley\\
+$\mathbf G_3$ & Eq.~\eqref{eq:g3proxy}; $\kappa=0.01$; EMA 0.80; refresh 20;
+5th-percentile mask & Score/tail proxy; mask not applied, no TMC\\
+Contrastive view & SVD rank 16; InfoNCE temperature 0.05;
+$\lambda_{\mathrm{cl}}=0.005$ & Component effect unmeasured\\
+Attention bridge & MLP $2d\rightarrow32\rightarrow1$ with ReLU;
+$\lambda_{\mathrm{game}}=0.01$; untempered training target, 0.5-temperature
+propagation & Distillation gap, mismatch and latency unmeasured\\
+Regularisation & $\lambda_{\mathrm{reg}}=10^{-4}$ & Retained configuration
+archived in code\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Retained objective and proxy consistency regularisation}
 \label{sec:loss}
 
-The end-to-end objective combines ranking, contrastive learning, game
+The retained objective combines ranking, contrastive learning, proxy
 consistency and $L_2$ regularisation:
 \begin{equation}
 \mathcal{L} = \mathcal{L}_{\mathrm{rank}}
@@ -1082,16 +1061,15 @@ consistency and $L_2$ regularisation:
 \end{equation}
 
 \paragraph{Ranking loss}
-To mitigate head-item overconfidence (W7) we replace single-negative BPR with
-generalised BCE over 256 sampled negatives, weighted by the $\mathbf{G_3}$
-sample weights:
+The retained checkpoints use sample-weighted BPR with one effective negative:
+although 64 negative IDs are generated per positive, only the first enters
 \begin{equation}
-\mathcal{L}_{\mathrm{rank}} = -\frac{1}{|\mathcal{B}|}\!\!
-\sum_{(u,i) \in \mathcal{B}}\!\! \gamma_{ui}
-\Bigl[ \log \sigma(s_{ui}) + \!\!\sum_{j \in \mathrm{Neg}(u)}\!\!
-w_j \log(1 - \sigma(s_{uj})) \Bigr],
+\mathcal L_{\mathrm{rank}}=-|\mathcal B|^{-1}
+\sum_{(u,i)\in\mathcal B}\gamma_{ui}
+\log\sigma(s_{ui}-s_{uj_1}).
 \end{equation}
-with $w_j$ the softmax weight of negative $j$ at temperature $\tau_n$.
+Thus generalized BCE and multi-negative effects are not part of the measured
+configuration.
 
 \paragraph{Contrastive loss}
 Local pooled embeddings are regularised against the Channel~C global view:
@@ -1103,301 +1081,221 @@ Local pooled embeddings are regularised against the Channel~C global view:
 \bar{\mathbf{e}}_{u'})/\tau_c\bigr)} .
 \end{equation}
 
-\paragraph{Shapley consistency loss}
+\paragraph{Proxy consistency loss}
 \begin{align}
 \mathcal{L}_{\mathrm{game}} &= \sum_{(u,i) \in \mathcal{E}}
-\bigl\lVert \sigma(a_{ui}/\tau) -
-\mathrm{sg}\!\left(\sigma(\bar{\hat{\phi}}_{ui}/\tau)\right)
+\bigl\lVert \sigma(a_{ui}) -
+\mathrm{sg}\!\left(\sigma(\bar q_{ui})\right)
 \bigr\rVert^2, \label{eq:game}\\
-\bar{\hat{\phi}}^{(t)}_{ui} &= \eta\, \bar{\hat{\phi}}^{(t-1)}_{ui}
-+ (1-\eta)\, \hat{\phi}^{(t)}_{ui}, \quad \eta = 0.9,
+\bar q^{(t)}_{ui} &= 0.85\,\bar q^{(t-1)}_{ui}+0.15\,q^{(t)}_{ui},
 \end{align}
-where $a_{ui}$ is an end-to-end learnable attention weight and
-$\mathrm{sg}(\cdot)$ the stop-gradient operator. The EMA buffer damps the high
-variance of Monte-Carlo estimates; the stop-gradient prevents the attention
-parameters from corrupting their own target.
+where $a_{ui}$ is an end-to-end learnable attention logit and
+$\mathrm{sg}(\cdot)$ the stop-gradient operator. The EMA buffer smooths the deterministic proxy across refreshes; it is not an uncertainty estimate. The retained loss is untempered while propagation uses temperature 0.5, an unmeasured train/deploy mismatch.
 
-\subsection{Inference without Monte-Carlo Shapley sampling}
+\subsection{Inference with distilled proxy attention}
 \label{sec:zero}
 
-During inference all game-theoretic computation is disabled. Because $a_{ui}$
-is regularised by Eq.~\eqref{eq:game} to track $\bar{\hat{\phi}}_{ui}$,
-forward propagation uses
+At inference, the retained model evaluates the attention MLP and uses
 \begin{equation}
-w_{ui} = \frac{1}{\sqrt{d_u d_i}}
-\bigl[(1-\lambda) + \lambda\, \sigma(a_{ui}/\tau)\bigr],
+w_{ui}=\frac{\nu}{\sqrt{d_ud_i}}
+\left[1+2\lambda\bigl(\sigma(a_{ui}/0.5)-\tfrac12\bigr)\right],
+\qquad \nu\text{ learnable, initialised at }1.
 \label{eq:infweight}
 \end{equation}
-so no Monte-Carlo Shapley computation is performed at serving time. The
-residual cost relative to LightGCN is one forward pass of the attention
-network per edge, which we have not measured
-(Section~\ref{sec:limitations}). The Monte-Carlo computation is paid during training and amortised into the
-attention weights; this does not imply zero latency relative to LightGCN.
+No credit-proxy refresh is performed on the serving path. The residual
+attention cost relative to LightGCN is unmeasured, so this is an architectural
+statement rather than an efficiency result.
 
 %==========================================================================
-\section{Computational complexity and feasibility}
+\section{Computational complexity and retained training algorithm}
 \label{sec:complexity}
 
-\subsection{Restricted coalitions and permutation sampling}
-\label{sec:restrict}
-
-Exact Shapley computation via Eq.~\eqref{eq:shapley} requires
-$O(2^{|\mathcal{N}|})$ evaluations. CoopGCN applies three standard
-mitigations. \emph{Restricted coalitions:} for high-degree nodes,
-neighbourhoods are capped at top-$L$ ($L \le 32$) by reservoir sampling.
-\emph{Monte-Carlo permutation sampling:} $\hat{\phi}_{ui}$ is estimated from
-$T$ random permutations per refreshed node, reducing local cost to $O(T \cdot
-|\mathcal{N}| \cdot d)$. This is the polynomial sampling estimator of Castro
-et al. \citep{castro2009polynomial}. It is unbiased for the restricted game
-induced by the sampled, capped neighbourhood, not for the original full game;
-its Monte-Carlo variance decreases as $O(1/T)$. Stratified allocation \citep{castro2017improving} would tighten the
-constant further and is a straightforward extension we have not pursued here. \emph{Periodic refresh:} credits are recomputed every
-$P$ epochs ($M$ for $\mathbf{G_3}$) and stored in the EMA buffer, which serves
-intermediate steps. Algorithm~\ref{alg:coopgcn} gives the resulting training
-loop.
+The ideal Shapley value in Eq.~\eqref{eq:shapley} is exponential in the player
+count; a standard permutation estimator would cost
+$O(TLC_v)$ per capped local game for $T$ permutations, cap $L$, and
+characteristic-function cost $C_v$. That estimator is not executed by the
+retained configuration. Its actual periodic costs are:
+\begin{itemize}
+\item edge-proxy refresh: $O(|\mathcal U|Ld)$ with $L=32$;
+\item hyperedge-proxy refresh:
+$O(\sum_{h\in\mathcal E_H}|h|^2d)$ for pairwise cosine matrices;
+\item sample-proxy refresh: one model forward plus $O(|\mathcal E|d)$ score and
+rank processing;
+\item rank-16 sparse SVD: a CPU preprocessing operation whose solver-dependent
+cost is not reduced to a single closed form here.
+\end{itemize}
+Memory includes $O(|\mathcal U|L)$ for edge EMA/indices,
+$O(|\mathcal E_H|)$ for group weights, $O(|\mathcal E|)$ for sample weights,
+and model/optimizer state. Wall-clock time and peak memory were not retained;
+no percentage-overhead claim is made.
 
 \begin{algorithm}[t]
-\caption{CoopGCN training}
+\caption{Retained CoopGCN proxy training path}
 \label{alg:coopgcn}
 \small
 \begin{algorithmic}[1]
-\State \textbf{Input:} train graph $\mathcal{G}$, hyperedges $\mathcal{E}_H$
-(train only), periods $P,M$
-\State Audit split disjointness; compute $d_u,d_i$ from train edges only
-\State Initialise embeddings, attention net, EMA buffer
-$\bar{\hat{\phi}} \gets \mathbf{0}$
-\For{epoch $t = 1 \ldots T_{\max}$}
-  \If{$t \bmod P = 0$}
-    \State $\hat{\phi}_{ui} \gets$ MC-Shapley on $\Gamma_u$ under
-    $v^{\mathrm{cons}}$ \Comment{$\mathbf{G_1}$}
-    \State $\bar{\hat{\phi}} \gets \eta \bar{\hat{\phi}} + (1-\eta)\hat{\phi}$
-    \State $\hat{\phi}_j(h) \gets$ MC-Shapley on $\Gamma_h$ under $v_h$,
-    $\forall h \in \mathcal{E}_H$ \Comment{$\mathbf{G_2}$}
-    \State $\beta_h \gets \sigma(\mathrm{mean}_j \hat{\phi}_j(h)/\tau_h)$
+\State \textbf{Input:} train graph $\mathcal G$, train-derived hyperedges
+$\mathcal E_H$, periods $P=5,M=20$
+\State Audit split disjointness; compute train-only degrees and tail mask
+\State Initialise embeddings, attention MLP, $\bar q\gets0$, $\bar r\gets1$
+\For{epoch $t=1,\ldots,T_{\max}$}
+  \If{$t\bmod P=1$}
+    \State Compute edge proxy $q_{ui}$ by Eq.~\eqref{eq:g1proxy}; update
+    $\bar q$ \Comment{$\mathbf G_1$ proxy}
+    \State Compute $q_h,\beta_h$ by Eq.~\eqref{eq:g2proxy}
+    \Comment{$\mathbf G_2$ proxy}
   \EndIf
-  \If{$t \bmod M = 0$}
-    \State $\hat{\phi}^{\mathrm{data}} \gets$ TMC-Shapley under
-    $v^{\mathrm{ndcg}}$ \Comment{$\mathbf{G_3}$}
-    \State Set $\gamma_{ui}$; prune bottom $p\%$ from $\mathcal{G}$
-    \State Recompute train degrees, tail mask and hyperedges after pruning
+  \If{$t\bmod M=1$ and $t>1$}
+    \State Compute $r_{ui},\bar r_{ui},\gamma_{ui}$ by
+    Eq.~\eqref{eq:g3proxy} \Comment{$\mathbf G_3$ proxy}
+    \State Compute bottom-5\% diagnostic mask; do not alter $\mathcal G$
   \EndIf
-  \For{minibatch $\mathcal{B}$}
-    \State $a_{ui} \gets \mathrm{AttNet}([\mathbf{e}_u \Vert \mathbf{e}_i])$
-    \State $w_{ui}$ by Eq.~\eqref{eq:edgeweight} with $\sigma(a_{ui}/\tau)$ in
-    place of $\sigma(\bar{\hat{\phi}}_{ui}/\tau)$ \Comment{see Sec.~\ref{sec:gap}}
-    \State Propagate Channels A, B; pool; compute $\mathbf{e}^{g}$ (Channel C)
-    \State Update by Eq.~\eqref{eq:total}
+  \For{minibatch $\mathcal B$}
+    \State $a_{ui}\gets\mathrm{MLP}([\mathbf e_u\Vert\mathbf e_i])$
+    \State Propagate pairwise and 0.01-weight hypergraph channels; mean-pool
+    layers
+    \State Compute rank-16 SVD contrastive target and
+    $\mathcal L$ by Eq.~\eqref{eq:total}
+    \State Apply Adam update
   \EndFor
+  \State Early-stop on validation NDCG@20 (patience 50)
 \EndFor
-\State \textbf{Inference:} disable Shapley; use $\sigma(a_{ui}/\tau)$ only
+\State \textbf{Inference:} use Eq.~\eqref{eq:infweight}; perform no proxy
+refresh
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Amortised complexity}
-\label{sec:amortised}
-
-Table~\ref{tab:complexity} summarises the analytical budget. The design
-constraint is that Shapley estimation consume under 20\% of total training
-time; $\mathbf{G_1}$ dominates because it is the only game defined per user
-rather than per hyperedge or per batch. Serving performs no Shapley sampling, but the residual attention-network
-overhead relative to LightGCN is unmeasured (Section~\ref{sec:zero}).
-
-\begin{table}[t]
-\centering
-\caption{Analytical cost of each cooperative game. Percentages are design
-budgets, not measured wall-clock overhead. Serving omits these estimators but
-retains the attention network of Eq.~\eqref{eq:infweight}.}
-\label{tab:complexity}
-\footnotesize
-\begin{tabular}{lllll}
-\toprule
-\textbf{Level} & \textbf{Estimator} & \textbf{Cost / refresh} &
-\textbf{Train} & \textbf{Mem.} \\
-\midrule
-$\mathbf{G_1}$ & MC, $L\le32$ & $O(|\mathcal{U}| T L d)$ & $+12$--$15\%$ &
-$O(|\mathcal{E}|)$ \\
-$\mathbf{G_2}$ & MC, $|h|\le32$ & $O(|\mathcal{E}_H| T |h| d)$ & $+5$--$8\%$ &
-$O(|\mathcal{E}_H|)$ \\
-$\mathbf{G_3}$ & TMC & $O(K |\mathcal{B}_{\mathrm{val}}|)$ evals & $+4$--$6\%$ &
-$O(|\mathcal{B}|)$ \\
-\midrule
-\textbf{Total} & Amortised & --- & Unmeasured & Unmeasured \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-%==========================================================================
 \section{Experimental design and methodology}
 \label{sec:design}
 
-\subsection{Data leakage audit and temporal evaluation protocol}
+\subsection{Split, preprocessing and candidate protocol}
 \label{sec:leakage}
 
-To eliminate evaluation leakage (W11), all datasets are partitioned by a
-strict global temporal split (70\% train / 10\% validation / 20\% test) based
-on interaction timestamps. Three properties are enforced. \emph{Topological
-isolation:} the adjacency matrix, node degrees $d_u,d_i$, the bottom-80\% tail
-mask and all hyperedges $\mathcal{E}_H$ are computed strictly on the training
-split. \emph{Verification:} an automated assertion checks
-$\mathcal{E}_{\mathrm{val}} \cap \mathcal{E}_{\mathrm{train}} = \emptyset$ and
-$\mathcal{E}_{\mathrm{test}} \cap \mathcal{E}_{\mathrm{train}} = \emptyset$
-before training begins. \emph{Full-catalogue ranking:} evaluation ranks the
-entire item catalogue at cut-off 20 with no negative sampling. We stress the
-first point because computing the tail mask from full-dataset degrees---a
-common shortcut---would leak test information into precisely the metric on
-which we claim our largest gains.
+The two MovieLens datasets are globally sorted by timestamp (Python's stable
+sort preserves source-file order for equal timestamps) and split 70/10/20 by
+interaction count. Gowalla, Yelp2018 and Amazon-Book use the pinned LightGCN
+snapshot at commit \texttt{947ca2b}; because those files contain no timestamps,
+the upstream train split is retained and the upstream test interaction stream
+is divided 33/67 into validation/test. The latter three splits are therefore
+\emph{not temporal}. Any validation/test pair already in training is removed;
+within-split duplicate pairs are otherwise retained.
 
-\subsection{Benchmark datasets}
+All graph statistics and tail labels use training edges only. An item is tail
+when its training degree is at or below the 80th percentile of item degrees.
+At evaluation, users with at least one ground-truth item are macro-averaged.
+Each user is ranked against every catalogue item except their training-seen
+items; validation and test positives are not cross-filtered. PyTorch
+\texttt{topk} supplies the ranking and no additional tie breaker is imposed.
+TR@20 averages only over users with at least one tail ground-truth item.
+Coverage@20 is the number of distinct recommended items divided by the full
+catalogue size. The released evaluator implements these rules directly.
+
+\subsection{Datasets and exact hyperedge construction}
 \label{sec:datasets}
 
-The measured evidence covers five standard CF benchmarks; the three largest
-span two orders of magnitude in catalogue size and roughly a factor of 70 in
-density
-(Table~\ref{tab:datasets}). ML-1M is the primary dense benchmark; ML-100K is a smaller dense check, and
-Gowalla, Yelp2018 and Amazon-Book test generalisation to the sparse, large-catalogue regime where
-credit assignment should matter most, because scarce interactions per user
-leave topology-only weighting less signal to exploit.
+Table~\ref{tab:datasets} reports post-loader split counts; the same fields are
+machine-readable in \texttt{data/dataset\_protocol.csv}. Full-source
+interaction densities are 6.30\%, 4.47\%, 0.08\%, 0.13\% and 0.06\% in table
+order; graph construction uses only the listed training count. MovieLens hyperedges group training-present items by genre and
+retain groups of size at least two. For the three pinned LightGCN datasets,
+there are no geographic or category metadata in the retained files. The loader
+instead makes 250 seeded co-occurrence attempts: choose a seed item, sample up
+to 50 candidate items with replacement, admit candidates sharing at least two
+training users, stop at size 12, and retain clusters of size at least three.
+Seed 42 yields the accepted counts and size ranges below; repeated candidate
+IDs are possible because sampling is with replacement. This proxy construction
+must not be described as geographic sessions or business/co-purchase
+categories.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
-\caption{Benchmark datasets and leakage-safe hyperedge construction. All
-hyperedges are built from the training split only.}
+\caption{Datasets, post-loader splits and retained hyperedges. MovieLens uses
+global temporal splits; the other datasets use a pinned upstream split without
+timestamps.}
 \label{tab:datasets}
 \footnotesize
-\begin{tabular}{lrrrl}
+\begin{tabular}{lrrrrrl}
 \toprule
-\textbf{Dataset} & \textbf{Users} & \textbf{Items} & \textbf{Density} &
-\textbf{Hyperedges} \\
+\textbf{Dataset} & \textbf{Users} & \textbf{Items} & \textbf{Train} &
+\textbf{Val.} & \textbf{Test} & \textbf{Hyperedges}\\
 \midrule
-ML-100K & 943 & 1{,}682 & 6.30\% & Genre combinations \\
-ML-1M & 6{,}040 & 3{,}706 & 4.47\% & Genre combinations \\
-Gowalla & 29{,}858 & 40{,}981 & 0.08\% & Geographic sessions \\
-Yelp2018 & 31{,}668 & 38{,}048 & 0.13\% & Business categories \\
-Amazon-Book & 52{,}643 & 91{,}599 & 0.06\% & Co-purchase categories \\
+ML-100K & 943 & 1{,}682 & 70{,}000 & 10{,}000 & 20{,}000 &
+19 genre groups, size $\ge2$\\
+ML-1M & 6{,}040 & 3{,}706 & 700{,}146 & 100{,}021 & 200{,}042 &
+18 genre groups, size $\ge2$\\
+Gowalla & 29{,}858 & 40{,}981 & 810{,}128 & 71{,}689 & 145{,}553 &
+15 co-occurrence groups, size 3--11\\
+Yelp2018 & 31{,}668 & 38{,}048 & 1{,}237{,}259 & 106{,}968 & 217{,}179 &
+41 co-occurrence groups, size 3--6\\
+Amazon-Book & 52{,}643 & 91{,}599 & 2{,}380{,}730 & 199{,}114 & 404{,}264 &
+19 co-occurrence groups, size 3--8\\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
-\subsection{Baseline competitors}
+\subsection{Retained comparison set}
 \label{sec:baselines}
 
-Nine baselines span four families: \textbf{MF}, \textbf{NCF}
-\citep{he2017ncf} and \textbf{RecDCL} \citep{zhang2024recdcl} as non-graph
-context; \textbf{MF} is trained with BPR \citep{rendle2009bpr}; standard graph
-CF \textbf{LightGCN}
-\citep{he2020lightgcn}; contrastive \textbf{SGL} \citep{wu2021sgl} and
-\textbf{SimGCL} \citep{yu2022simgcl}; norm-weighted \textbf{LightGCN++}
-\citep{lee2024lightgcnpp} and learned-attention \textbf{GAT-CF}; and hypergraph/cooperative \textbf{HCCF}
-\citep{xia2022hccf}, \textbf{HPCF} and \textbf{DyHuCoG} \citep{louhichi2026dyhucog}.
-All models use the same split and evaluator. The retained records do not
-contain complete trial-by-trial search traces or a GAT-CF learning-rate sweep;
-we therefore cannot verify equal tuning diligence and treat model comparisons,
-especially GAT-CF collapse on sparse data, as preliminary.
+The authoritative measured set is nine baselines plus CoopGCN:
+\textbf{MF} with BPR \citep{rendle2009bpr}, \textbf{NCF}
+\citep{he2017ncf}, \textbf{RecDCL} \citep{zhang2024recdcl},
+\textbf{LightGCN} \citep{he2020lightgcn}, \textbf{LightGCN++}
+\citep{lee2024lightgcnpp}, an in-house \textbf{GAT-CF} adaptation,
+\textbf{HCCF} \citep{xia2022hccf}, \textbf{HPCF}
+\citep{chen2024hpcf}, and \textbf{DyHuCoG}
+\citep{louhichi2026dyhucog}. GAT-CF is not a reproduction of a named
+recommender publication: it uses the same embeddings and topology as
+LightGCN, with an MLP $2d\rightarrow32\rightarrow1$ and sigmoid modulation
+$0.5+0.5\sigma(a_{ui})$. SGL and SimGCL remain related-work methods but are
+excluded from the retained table because no same-protocol record survives; no
+claim depends on their omission. Trial-level search traces are unavailable for
+all models, so every comparison is configuration-specific rather than a fair
+mechanism-level contest.
 
-\subsection{Implementation and reproducibility settings}
+\subsection{Implementation manifest}
 \label{sec:repro}
 
-All model classes are implemented in PyTorch in the released codebase and use
-the shared split and evaluator interfaces. This reduces, but cannot eliminate,
-implementation drift; equivalence to each originating implementation has not
-been independently established. Embeddings are $d = 64$ dimensional with $K = 3$
-propagation layers, initialised $\mathcal{N}(0, 0.1^2)$. Optimisation uses
-Adam at learning rate $5 \times 10^{-3}$, weight decay $\lambda_3 = 10^{-4}$,
-batch size 1024 (raised to 8192 for the full-catalogue scoring pass), for at
-most 1000 epochs with early stopping on validation NDCG@20 at patience 50.
-The ranking loss is gBCE with 256 sampled negatives per positive.
+The exact retained CoopGCN settings are in
+Table~\ref{tab:retained-config} and
+\texttt{paper/retained\_run\_manifest.yaml}; the executable source and
+checkpoints are archived in the repository. Commit \texttt{81da541} is the checkpoint-generation
+code lineage; later commits revise documentation without claiming new runs. The single global seed is 42. A complete
+hardware/software manifest and baseline-specific search log were not retained,
+so Table~\ref{tab:measured} is not claimed to be independently reproducible to
+the last decimal from the paper alone.
 
-Game-specific settings are: mixing coefficient $\lambda = 0.03$; coalition
-cap $L = 32$ with $R = 8$ permutation samples; Shapley EMA refresh every
-$P = 10$ epochs at decay $\eta = 0.9$; Data-Shapley curation every $M = 20$
-epochs with reweighting range $\kappa$ and bottom-5\% pruning; temperatures
-$\tau$ and $\tau_h$ tuned on validation only. Loss weights $\lambda_1$
-(contrastive) and $\lambda_2$ (consistency) are selected per dataset on the
-validation split, never on test. Evaluation scripts are in the repository named in the data-availability
-statement. The retained measured record is single-run and does not preserve a
-complete hardware/software manifest, seed sweep, or trial-level tuning log.
-
-\subsection{Multi-dimensional evaluation metrics}
+\subsection{Measured metrics}
 \label{sec:metrics}
 
-The evaluation design defines four metric families. \emph{Ranking accuracy:}
-NDCG@20 and Recall@20. \emph{Tail performance:} Tail Recall
-\textbf{TR@20}, recall restricted to the bottom-80\% least-popular items.
-\emph{Catalogue diversity:} \textbf{Coverage@20}, the percentage of the
-catalogue appearing in any top-20 list, and the \textbf{Gini index} of
-recommendation frequency. \emph{Robustness to random corruption:} degradation
-under 5\%, 10\% and 20\% random noisy-edge injection. The retained common
-measured record contains only NDCG@20, TR@20 and Coverage@20; we do not fill
-Recall, Gini or corruption results from incompatible sources.
+The retained common record contains NDCG@20, TR@20 and Coverage@20 under the
+candidate protocol above. NDCG uses binary relevance and per-user ideal DCG;
+TR uses test positives in the training-degree tail stratum; Coverage is a
+catalogue-level aggregate and does not by itself establish user benefit.
+Recall and Gini are implemented but omitted because a complete common record
+was not retained. No corruption metric is part of this study.
 
-\subsection{Research questions}
+\subsection{Descriptive research questions}
 \label{sec:rqs}
 
 \begin{itemize}
-\item[\textbf{RQ1}] \emph{Overall accuracy.} Does CoopGCN achieve competitive
-NDCG@20 and Recall@20 across benchmarks of differing density?
-\item[\textbf{RQ2}] \emph{Shapley versus attention.} Does Shapley-derived
-weighting differ from learned attention on tail recall, coverage and
-robustness?
-\item[\textbf{RQ3}] \emph{Group structure and collapse.} How do Channel~B
-($\mathbf{G_2}$) and Channel~C contribute to long-tail recommendation?
-\item[\textbf{RQ4}] \emph{Data curation and robustness.} Does $\mathbf{G_3}$ pruning improve resilience to random edge injection?
-This is an empirical question; Proposition~\ref{prop:robust} is only a
-Channel-A per-edge bound.
-\item[\textbf{RQ5}] \emph{Efficiency.} Does $\mathcal{L}_{\mathrm{game}}$
-remove sampling from the serving path at acceptable measured cost?
+\item[\textbf{RQ1}] What accuracy and catalogue-exposure point estimates does
+the retained CoopGCN proxy configuration occupy relative to the nine retained
+configurations across dense and sparse datasets?
+\item[\textbf{RQ2}] Across these configurations, is NDCG--coverage association
+uniformly negative, as would be expected if broader coverage were merely a
+mechanical consequence of weaker ranking?
 \end{itemize}
 
-\subsection{Ablation design and the central comparison}
-\label{sec:central}
-
-Table~\ref{tab:matrix} specifies the ten-configuration ablation matrix. Rows
-1--5 are external reference points, rows 6--9 remove one CoopGCN component
-each, and row 10 is the complete system. Configurations instantiated in the
-measured full-model results are marked; row 3 is measured in the main
-benchmark, while component removals are available only as projections and are
-therefore not marked as empirical ablations. Rows 4 and 9 remain unmeasured.
-
-\begin{table}[t]
-\centering
-\caption{Ablation matrix. \checkmark\ marks configurations reported in
-Section~\ref{sec:results}; $\circ$ marks configurations specified by the
-design but not instantiated in the present study.}
-\label{tab:matrix}
-\footnotesize
-\begin{tabular}{llll}
-\toprule
-\textbf{\#} & \textbf{Configuration} & \textbf{Games active} & \\
-\midrule
-1 & LightGCN (floor) & --- & \checkmark \\
-2 & LightGCN++ & --- & \checkmark \\
-3 & GAT-CF (attention) & --- & \checkmark \\
-4 & LightGCL & --- & $\circ$ \\
-5 & DyHuCoG & $\mathbf{G_2}$ & \checkmark \\
-6 & CoopGCN w/o $\mathbf{G_1}$ & $\mathbf{G_2}{+}\mathbf{G_3}$ & $\circ$ \\
-7 & CoopGCN w/o $\mathbf{G_2}$ & $\mathbf{G_1}{+}\mathbf{G_3}$ & $\circ$ \\
-8 & CoopGCN w/o $\mathbf{G_3}$ & $\mathbf{G_1}{+}\mathbf{G_2}$ & $\circ$ \\
-9 & CoopGCN w/o $\mathcal{L}_{\mathrm{game}}$ & all & $\circ$ \\
-10 & \textbf{Full CoopGCN} & all & \checkmark \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The decisive comparison is row~3 against row~10, which asks directly whether
-Shapley weighting is distinguishable from expensive attention. We fix the
-victory condition in advance: \emph{even if learnable attention matches
-$\hat{\phi}$-Shapley weighting on clean-data NDCG@20, CoopGCN succeeds only if
-it is superior on TR@20, Coverage@20 and noise immunity simultaneously.} Row~3 is now reported under the same split and evaluator. Clean-data TR@20
-and Coverage@20 favour CoopGCN, but the noise conjunct is unmeasured and the
-absence of GAT-CF tuning traces prevents a definitive causal comparison. The
-central question is therefore partially, not fully, answered.
+Component causality, random corruption, attribution faithfulness and runtime
+are not formal research questions in this preliminary study. They are
+pre-specified confirmatory work in Section~\ref{sec:future}.
 
 \subsection{Provenance and statistical scope}
 \label{sec:provenance}
 
 The main evidence below is the repository's retained measured record: one
-executed run per model--dataset cell under the temporal split and
-full-catalogue evaluator. Earlier drafts contained a separate table of
+executed run per model--dataset cell under the dataset-specific split and
+unseen-item full-catalogue evaluator described above. Earlier drafts contained a separate table of
 literature-derived design targets, including projected CoopGCN values of
 0.2960, 0.0680 and 0.0480 NDCG@20 on ML-1M, Yelp2018 and Amazon-Book. Executed
 values were 0.1994, 0.0376 and 0.0235. Because those targets are contradicted by
@@ -1429,55 +1327,57 @@ are included as context because their objectives and inductive biases differ.
 
 \begin{table*}[t]
 \centering
-\caption{Single-run measured NDCG@20 / TR@20 / Coverage@20 (\%). No uncertainty
-intervals are available; differences must not be interpreted as statistically
-significant.}
+\caption{Single-run measured point estimates. Panel A: NDCG@20; Panel B:
+TR@20; Panel C: Coverage@20 (\%). No uncertainty intervals are available and
+boldface denotes only the largest retained graph-model point estimate.}
 \label{tab:measured}
 \scriptsize
-\setlength{\tabcolsep}{2.3pt}
-\begin{tabular}{lccccc}
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{lrrrrr}
 \toprule
 \textbf{Model} & \textbf{ML-100K} & \textbf{ML-1M} & \textbf{Gowalla} &
-\textbf{Yelp2018} & \textbf{Amazon-Book} \\
+\textbf{Yelp2018} & \textbf{Amazon-Book}\\
 \midrule
-\textbf{CoopGCN} & 0.1826 / \textbf{0.0106} / \textbf{46.9} &
-0.1994 / \textbf{0.0075} / \textbf{40.7} &
-0.1089 / 0.0104 / 7.95 &
-\textbf{0.0376} / \textbf{0.0006} / \textbf{5.36} &
-\textbf{0.0235} / \textbf{0.0036} / \textbf{6.47} \\
-LightGCN++ & 0.1627 / 0.0100 / 46.5 & 0.2054 / 0.0008 / 37.3 &
-\textbf{0.1092} / \textbf{0.0116} / \textbf{8.06} &
-0.0359 / \textbf{0.0006} / 5.01 & 0.0222 / 0.0027 / 5.44 \\
-GAT-CF & \textbf{0.1943} / 0.0022 / 19.4 & 0.2096 / 0.0001 / 10.0 &
-0.0038 / 0.0005 / 10.3 & 0.0014 / 0.0003 / 0.13 &
-0.0002 / 0.0000 / 0.05 \\
-LightGCN & 0.1842 / 0.0036 / 27.8 & 0.2128 / 0.0000 / 9.82 &
-0.0348 / 0.0000 / 0.20 & 0.0145 / 0.0000 / 0.35 &
-0.0002 / 0.0000 / 0.05 \\
-HPCF & 0.1747 / 0.0020 / 25.7 & \textbf{0.2141} / 0.0000 / 9.23 &
-0.0278 / 0.0000 / 0.39 & 0.0110 / 0.0000 / 0.48 &
-0.0003 / 0.0000 / 0.05 \\
-HCCF & 0.1723 / 0.0019 / 21.2 & 0.2070 / 0.0000 / 8.23 &
-0.0291 / 0.0000 / 0.35 & 0.0113 / 0.0000 / 0.25 &
-0.0002 / 0.0000 / 0.05 \\
-DyHuCoG & 0.1718 / 0.0026 / 20.5 & 0.2114 / 0.0000 / 9.42 &
-0.0338 / 0.0000 / 0.32 & 0.0144 / 0.0000 / 0.35 &
-0.0002 / 0.0000 / 0.05 \\
+\multicolumn{6}{l}{\textit{Panel A: NDCG@20}}\\
+CoopGCN (proxy) & 0.1826 & 0.1994 & 0.1089 & \textbf{0.0376} & \textbf{0.0235}\\
+LightGCN++ & 0.1627 & 0.2054 & \textbf{0.1092} & 0.0359 & 0.0222\\
+GAT-CF & \textbf{0.1943} & 0.2096 & 0.0038 & 0.0014 & 0.0002\\
+LightGCN & 0.1842 & 0.2128 & 0.0348 & 0.0145 & 0.0002\\
+HPCF & 0.1747 & \textbf{0.2141} & 0.0278 & 0.0110 & 0.0003\\
+HCCF & 0.1723 & 0.2070 & 0.0291 & 0.0113 & 0.0002\\
+DyHuCoG & 0.1718 & 0.2114 & 0.0338 & 0.0144 & 0.0002\\
+RecDCL & 0.3103 & 0.2997 & 0.0434 & 0.0109 & 0.0042\\
+NCF & 0.2939 & 0.2883 & 0.0444 & 0.0129 & 0.0062\\
+MF & 0.1467 & 0.2043 & 0.0004 & 0.0006 & 0.0003\\
 \midrule
-RecDCL & 0.3103 / 0.0000 / 13.1 & 0.2997 / 0.0000 / 5.42 &
-0.0434 / 0.0000 / 0.27 & 0.0109 / 0.0000 / 0.25 &
-0.0042 / 0.0000 / 0.05 \\
-NCF & 0.2939 / 0.0000 / 6.54 & 0.2883 / 0.0000 / 4.80 &
-0.0444 / 0.0000 / 0.79 & 0.0129 / 0.0000 / 0.84 &
-0.0062 / 0.0001 / 0.54 \\
-MF & 0.1467 / 0.0052 / 34.5 & 0.2043 / 0.0003 / 17.1 &
-0.0004 / 0.0006 / 6.70 & 0.0006 / 0.0006 / 6.82 &
-0.0003 / 0.0000 / 0.05 \\
+\multicolumn{6}{l}{\textit{Panel B: Tail Recall TR@20}}\\
+CoopGCN (proxy) & \textbf{0.0106} & \textbf{0.0075} & 0.0104 & \textbf{0.0006} & \textbf{0.0036}\\
+LightGCN++ & 0.0100 & 0.0008 & \textbf{0.0116} & \textbf{0.0006} & 0.0027\\
+GAT-CF & 0.0022 & 0.0001 & 0.0005 & 0.0003 & 0.0000\\
+LightGCN & 0.0036 & 0.0000 & 0.0000 & 0.0000 & 0.0000\\
+HPCF & 0.0020 & 0.0000 & 0.0000 & 0.0000 & 0.0000\\
+HCCF & 0.0019 & 0.0000 & 0.0000 & 0.0000 & 0.0000\\
+DyHuCoG & 0.0026 & 0.0000 & 0.0000 & 0.0000 & 0.0000\\
+RecDCL & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000\\
+NCF & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0001\\
+MF & 0.0052 & 0.0003 & 0.0006 & 0.0006 & 0.0000\\
+\midrule
+\multicolumn{6}{l}{\textit{Panel C: Coverage@20 (\%)}}\\
+CoopGCN (proxy) & \textbf{46.9} & \textbf{40.7} & 7.95 & \textbf{5.36} & \textbf{6.47}\\
+LightGCN++ & 46.5 & 37.3 & 8.06 & 5.01 & 5.44\\
+GAT-CF & 19.4 & 10.0 & \textbf{10.3} & 0.13 & 0.05\\
+LightGCN & 27.8 & 9.82 & 0.20 & 0.35 & 0.05\\
+HPCF & 25.7 & 9.23 & 0.39 & 0.48 & 0.05\\
+HCCF & 21.2 & 8.23 & 0.35 & 0.25 & 0.05\\
+DyHuCoG & 20.5 & 9.42 & 0.32 & 0.35 & 0.05\\
+RecDCL & 13.1 & 5.42 & 0.27 & 0.25 & 0.05\\
+NCF & 6.54 & 4.80 & 0.79 & 0.84 & 0.54\\
+MF & 34.5 & 17.1 & 6.70 & 6.82 & 0.05\\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-\subsection{RQ1: accuracy is regime-dependent}
+\subsection{RQ1: measured accuracy and exposure point estimates}
 \label{sec:rq1}
 
 Within the direct hypergraph/cooperative peer group (HCCF, HPCF and DyHuCoG),
@@ -1499,118 +1399,108 @@ outcomes. Nevertheless, their scale shows that graph-based credit assignment
 is not the strongest lever for dense-benchmark NDCG in this record. CoopGCN's
 case must therefore rest on a different accuracy--exposure operating point and
 on sparse-regime behavior, not on a general claim that graph propagation is the
-best dense-data architecture.
+best dense-data architecture. Across the three sparse datasets, RecDCL has
+TR@20 $=0$ throughout and NCF has a single non-zero cell (Amazon-Book,
+0.0001); their coverage remains below 1\%. This completes the descriptive
+accuracy--exposure contrast but does not establish user benefit.
 
 The retained ML-1M log has contrastive loss around 5.0 against ranking loss
 around 0.11, consistent with over-regularisation, but this post-hoc observation
 does not prove causation. A per-dataset $\lambda_1$ sweep and measured
 component ablation are needed.
 
-\subsection{RQ2: long-tail exposure and learned attention}
+\subsection{Additional configuration-level context}
 \label{sec:rq2}
 
-The distributional point estimates are larger and consistent within the direct
-peer group. CoopGCN has the highest TR@20 and Coverage@20 among HCCF, HPCF and
-DyHuCoG on all five datasets. On ML-1M it reaches TR@20 $=0.0075$ and coverage
+The distributional point estimates are larger and consistent within the
+selected direct peer group. CoopGCN has the highest TR@20 and Coverage@20
+point estimates among HCCF, HPCF and DyHuCoG on all five datasets. On ML-1M it reaches TR@20 $=0.0075$ and coverage
 $=40.7\%$, while those three peers have TR@20 $=0$ and coverage between 8.23\%
 and 9.42\%. On Amazon-Book, its coverage is 6.47\% versus 0.05\% for each
-peer. LightGCN++ remains a strong comparator and slightly exceeds CoopGCN on
-both TR@20 and coverage on Gowalla.
+peer. CoopGCN's rounded coverage percentages correspond to approximately 789,
+1{,}508, 3{,}258, 2{,}039 and 5{,}926 distinct items on ML-100K, ML-1M,
+Gowalla, Yelp2018 and Amazon-Book, respectively; the counts are approximate
+because only rounded percentages survive in the record. LightGCN++ remains a
+strong comparator and slightly exceeds CoopGCN on both TR@20 and coverage on
+Gowalla.
 
-GAT-CF is stronger in NDCG on ML-100K and ML-1M, but its NDCG falls to 0.0038,
-0.0014 and 0.0002 on Gowalla, Yelp2018 and Amazon-Book. This could reflect a
-real sparse-regime limitation or an implementation/tuning failure: learned
-attention has greater capacity than fixed LightGCN weighting, and its roughly
-tenfold deficit to LightGCN on Yelp2018 is anomalous. Because the retained
+The retained in-house GAT-CF configuration is stronger in NDCG on ML-100K and
+ML-1M, but records 0.0038, 0.0014 and 0.0002 on Gowalla, Yelp2018 and
+Amazon-Book. This could reflect a real sparse-regime limitation or an
+implementation/tuning failure: learned attention has greater capacity than
+fixed LightGCN weighting, and the roughly tenfold deficit to LightGCN on
+Yelp2018 is anomalous. Because the retained
 artefacts contain neither learning-rate sweeps nor training curves, we cannot
-rule out the latter. The fair conclusion is that the measured configuration
-of GAT-CF collapsed, not that attention generally fails. The same standard
+rule out the latter. The fair conclusion is that the retained GAT-CF configuration performs poorly
+on these datasets, not that attention generally fails. The same standard
 applies to MF: its NDCG@20 falls to 0.0004 on Gowalla and 0.0003 on
 Amazon-Book, far below its dense-data values, without retained tuning traces
 that distinguish a genuine sparse-regime failure from an implementation or
-optimisation artifact. Neither collapse supports an architecture-wide claim.
-The pre-specified three-part victory condition is only partly met: CoopGCN
-leads the retained GAT-CF configuration on tail recall and coverage, while
-measured comparative noise resilience is absent.
+optimisation artifact. Neither poor-performing configuration supports an architecture-wide claim.
+The comparison is descriptive and cannot answer a Shapley-versus-attention
+mechanism question.
 
-\subsection{Descriptive accuracy--coverage sensitivity}
+\subsection{RQ2: descriptive cross-model association between accuracy and coverage}
 \label{sec:tradeoff}
 
-A weaker ranker could mechanically expose more items, so coverage gains alone
-do not identify a credit-assignment effect. As a descriptive sensitivity
-check, Table~\ref{tab:tradeoff} reports Spearman rank correlation between
-NDCG@20 and Coverage@20 across the ten model point estimates and, separately,
-across the seven graph models. The calculation is regenerated from
-\texttt{data/measured\_results.csv} by
+A weaker ranker could mechanically expose more items, so coverage alone does
+not identify a credit mechanism. Table~\ref{tab:tradeoff} reports Spearman
+rank correlation between NDCG@20 and Coverage@20 across all ten configurations
+and the seven graph configurations. Exact ties receive average ranks. Because
+model identities are not a random sample, a bootstrap confidence interval over
+models would have no population interpretation; we instead report the full
+leave-one-model-out (LOMO) range as an influence diagnostic. The calculation
+is regenerated from \texttt{data/measured\_results.csv} by
 \texttt{scripts/analyze\_measured\_tradeoff.py}.
 
 \begin{table}[t]
 \centering
-\caption{Descriptive Spearman $\rho$ between NDCG@20 and Coverage@20 across
-single-run model point estimates. This is a sensitivity diagnostic, not a
-seed-level test or causal estimate.}
+\caption{Cross-model Spearman $\rho$ with LOMO range in brackets. These are
+single-run descriptive associations, not confidence intervals, seed-level
+tests or causal estimates.}
 \label{tab:tradeoff}
-\footnotesize
-\begin{tabular}{lrr}
+\scriptsize
+\begin{tabular}{lcc}
 \toprule
-\textbf{Dataset} & \textbf{All models ($n=10$)} &
-\textbf{Graph models ($n=7$)} \\
+\textbf{Dataset} & \textbf{All ($n=10$)} & \textbf{Graph ($n=7$)}\\
 \midrule
-ML-100K & $-0.636$ & $-0.179$ \\
-ML-1M & $-0.842$ & $-0.607$ \\
-Gowalla & $0.006$ & $-0.107$ \\
-Yelp2018 & $0.305$ & $0.775$ \\
-Amazon-Book & $0.841$ & $0.885$ \\
+ML-100K & $-0.636$ [$-0.800,-0.500$] & $-0.179$ [$-0.429,0.314$]\\
+ML-1M & $-0.842$ [$-0.950,-0.783$] & $-0.607$ [$-0.943,-0.371$]\\
+Gowalla & $0.006$ [$-0.233,0.333$] & $-0.107$ [$-0.429,0.429$]\\
+Yelp2018 & $0.305$ [$0.193,0.798$] & $0.775$ [$0.638,0.986$]\\
+Amazon-Book & $0.841$ [$0.766,0.883$] & $0.885$ [$0.775,1.000$]\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The signs are not uniformly negative: the dense benchmarks show an
-accuracy--coverage trade-off, Gowalla is near zero, and the two largest sparse
-catalogues show positive association. This rules out a universal mechanical
-explanation in which lower NDCG necessarily produces higher coverage, but it
-does not isolate CoopGCN's mechanism. The sample is only 7--10 heterogeneous
-models per dataset, contains ties, and inherits all single-run and tuning
-limitations of Table~\ref{tab:measured}; measured component ablations remain
-necessary for causal attribution.
-
-\subsection{RQ3--RQ4: component attribution and random-noise resilience remain open}
-\label{sec:rq34}
-
-The earlier component and random-edge-injection tables used projected full
-model values, including ML-1M NDCG@20 $=0.2960$, that conflict with the
-measured 0.1994. They cannot support claims that $\mathbf{G_1}$ accounts for
-62.2\% of tail recall or that CoopGCN loses only 5.4\% under 20\% injection.
-We therefore remove those tables and answer neither RQ3 nor RQ4 empirically.
-Required confirmatory experiments are measured leave-one-component-out runs,
-including $w/o\ \mathcal{L}_{\mathrm{game}}$, and independently retrained
-0/5/10/20\% random-injection curves for CoopGCN, GAT-CF, LightGCN++ and
-LightGCN. Proposition~\ref{prop:robust} remains a local Channel-A statement and
-must not be read as a substitute for these experiments.
-
-\subsection{RQ5: serving-path computation is reduced, not timed}
-\label{sec:rq5}
-
-Equation~\eqref{eq:infweight} removes Monte-Carlo Shapley estimation from the
-serving path by construction. It does not make inference identical to
-LightGCN: the learned attention network still executes once per edge. No
-wall-clock latency, training-time overhead, peak memory or distillation-gap
-measurement is retained. RQ5 therefore remains open.
+The signs are not uniformly negative, so a universal inverse relationship is
+not present in this selected set. The diagnostic does not identify CoopGCN's
+mechanism. In particular, Amazon-Book is bimodal: six configurations cluster
+at NDCG $\le0.0003$ and Coverage $=0.05\%$, while four configurations avoid
+that floor. The strong positive $\rho$ is therefore largely a separation
+between collapsed and functional configurations rather than a smooth graded
+relationship. Under the post-hoc diagnostic exclusion NDCG $\le0.001$, only
+four models remain and $\rho=1.0$, which confirms co-movement but is too small
+and selected to support inference. Yelp2018 has a less extreme version of the
+same sparsity confound. Any method that simply avoids sparse-data collapse
+could improve both metrics through a third factor unrelated to credit. Component ablations and repeated runs, not cross-model
+correlation, are required for causal attribution.
 
 \subsection{Discussion}
 \label{sec:discussion}
 
-The measured evidence suggests an accuracy--exposure frontier rather than
-uniform dominance. CoopGCN changes which items are exposed, and the effect is
-largest against direct hypergraph/cooperative peers in sparse catalogues. On
+The measured record suggests an accuracy--exposure frontier rather than
+uniform dominance. The retained CoopGCN configuration has a different exposure
+profile, with the largest descriptive gaps against selected
+hypergraph/cooperative configurations in sparse catalogues. On
 dense ML-1M, that redistribution coincides with lower NDCG. Because every cell
 is a single run and baseline tuning traces are incomplete, even this
 regime-dependent interpretation is a hypothesis supported by preliminary
-point estimates, not a statistically established result. Accordingly, this
-manuscript should be read as a methods paper with Stage-1-style preliminary
-validation: the architecture, local theory, leakage controls and falsification
-criteria are complete, whereas confirmatory component, noise, timing,
-attribution and multi-seed studies are not.
+point estimates, not a statistically established result. Accordingly, this is a preliminary methods paper: observed point estimates and
+cross-model associations are separated from causal mechanisms, which remain
+untested. The ideal local theory and executable proxy architecture are fully
+specified, whereas confirmatory component, corruption, timing, attribution and
+multi-seed studies are future work.
 
 %==========================================================================
 \section{Conclusion, limitations and future work}
@@ -1618,106 +1508,76 @@ attribution and multi-seed studies are not.
 
 \subsection{Conclusion}
 
-CoopGCN proposes a tri-level, Shapley-derived credit-assignment framework for
-graph collaborative filtering. The exact credits satisfy the Shapley axioms;
-the deployed sigmoid- and attention-based weights do not. They retain only a
-credit-ordering signal within a fixed degree context, subject to Monte-Carlo
-and distillation error. Channel~A exactly recovers LightGCN propagation at
-$\lambda=0$ when the other channels are disabled, and
-Proposition~\ref{prop:robust} bounds only a single edge's Channel-A deviation
-from its zero-credit reference.
+CoopGCN contributes an ideal cooperative-game formulation and a concrete
+proxy-based graph-CF architecture. The exact Shapley allocation in the ideal
+games satisfies the classical axioms; the deterministic edge, hyperedge and
+sample proxies used by the retained checkpoints do not. Proposition~\ref{prop:recovery}
+and Proposition~\ref{prop:robust} concern ideal Channel-A weights only and are
+not empirical guarantees for the measured implementation.
 
-Single-run measurements suggest that CoopGCN substantially broadens tail and
-catalogue exposure relative to direct hypergraph/cooperative peers and remains
-competitive on sparse datasets. They also show a clear failure on dense ML-1M,
-where CoopGCN has the lowest NDCG among the measured graph models. The data do
-not establish universal accuracy, robustness, explainability or efficiency
-superiority. The contribution at this stage is a coherent architecture,
-carefully delimited theory, and preliminary evidence for an
-accuracy--exposure trade-off that now requires confirmatory evaluation.
+The retained single-run point estimates place CoopGCN at a broad-exposure
+operating point, with competitive sparse-data NDCG and an ML-1M accuracy cost.
+They do not identify which component causes that pattern, establish superiority,
+validate explanation, demonstrate corruption response, or measure efficiency.
+The contribution is therefore a reproducibly specified preliminary method and
+a set of descriptive observations, not a completed confirmatory study.
 
-\subsection{Limitations}
+\subsection{Limitations and threats to validity}
 \label{sec:limitations}
 
-\textbf{Single-run evidence.} No seed variance, confidence interval or
-significance test is available. Small sparse-data margins over LightGCN++ and
-the sign of the dense-data deficit require at least five independent runs or
-user-level bootstrap intervals before comparative claims are warranted.
+\textbf{One run and model selection.} Every cell uses seed 42. No seed
+variance, confidence interval or paired test is available, and retaining one
+run can induce model-selection bias.
 
-\textbf{Projection artefacts are not evidence.} Earlier projected accuracy,
-component and random-noise tables are contradicted by measurement and have
-been removed from the results section. Consequently RQ3 and RQ4 remain open.
+\textbf{Proxy--theory gap.} The measured implementation uses Eqs.
+\eqref{eq:g1proxy}--\eqref{eq:g3proxy}, not MC/TMC Shapley. Its proxies do not
+inherit Shapley axioms. Negative edge-proxy values indicate below-neighbourhood
+alignment and are down-modulated; the G3 quantile mapping largely discards sign
+and has no dummy-player guarantee.
 
-\textbf{Baseline tuning cannot be audited completely.} Shared splits and the
-evaluator are available, but trial-level logs and GAT-CF training curves are
-not. The sparse GAT-CF collapse may be a tuning or implementation artefact.
+\textbf{Component and family confounding.} The model simultaneously changes
+edge credit, hypergraph propagation, sample weights, loss, contrastive view and
+attention. No measured ablation isolates them. Cross-family comparisons and
+Table~\ref{tab:tradeoff} cannot identify a mechanism.
 
-\textbf{Theory is local.} Proposition~\ref{prop:robust} is a per-edge,
-per-layer Channel-A bound relative to a non-zero reference. It neither bounds
-multi-layer/full-model perturbation nor NDCG degradation. The full weight
-retains degree normalisation, and efficiency and additivity apply to $\phi$,
-not deployed weights.
+\textbf{Utility and hyperedge sensitivity.} Tail bonuses are explicitly built
+into all retained proxies, so broader exposure may partly reflect objective
+encoding rather than a general game-theoretic effect. Dataset-specific genre
+or random co-occurrence hyperedges may also drive results; repeated candidates
+are possible in sparse-data clusters.
 
-\textbf{Attribution is not validated.} Credits are structurally available,
-but no deletion, insertion, stability or explainer-comparison experiment has
-been executed. They must not be described as faithful explanations.
+\textbf{Baseline tuning.} Search traces are absent. GAT-CF is an in-house
+adaptation, and several sparse-data configurations perform near the metric
+floor. No mechanism-level attention conclusion follows.
 
-\textbf{Efficiency is not measured.} Serving omits Shapley sampling but retains
-an attention network. Training time, inference latency, memory and the
-worst-case distillation gap $\delta$ are unknown.
+\textbf{Evaluation scope.} Candidate ranking excludes training-seen items but
+uses one cut-off and one split. Score ties have no explicit secondary rule.
+Coverage is provider/catalogue exposure, not user utility; increasing it may
+reduce relevance for some users. Only rounded aggregate coverage survives, not
+per-user exposure distributions.
 
-\textbf{Scope and validation reuse.} Hyperedges depend on metadata; all
-metrics are reported at one cut-off; random corruption and targeted poisoning
-have not been measured in the retained evidence; and complete preprocessing
-manifests and hyperparameter-search traces are unavailable. Repeated
-$\mathbf{G_3}$ valuation on the same validation split may overfit that holdout;
-a nested valuation split is required in confirmatory work.
+\textbf{Validation reuse.} The retained G3 proxy does not query validation
+NDCG, contrary to the ideal data game. Future implementations that do so must
+use nested valuation/model-selection splits to avoid validation overfitting.
 
-\subsection{Future work}
+\textbf{Unvalidated attribution and cost.} Internal credits can reveal
+sensitive historical behaviour and may create unjustified trust if presented
+as explanations. No deletion, insertion or stability test supports that use.
+Attention latency, training time, memory and proxy-refresh cost are unmeasured.
+
+\subsection{Pre-specified confirmatory work}
 \label{sec:future}
 
-The immediate confirmatory study should (i) run at least five seeds with a
-fixed and published search budget; (ii) retain training curves and selected
-hyperparameters for GAT-CF and every comparator; (iii) execute measured
-component, $w/o\ \mathcal{L}_{\mathrm{game}}$ and random-injection ablations;
-(iv) report wall-clock and memory measurements; and (v) execute the attribution
-protocol below. Until those experiments are complete, extending the model to
-targeted attacks, metadata-free graphs, sequential recommendation or streaming
-graphs is secondary.
-
-\subsection{A pre-specified protocol for evaluating the attributions}
-\label{sec:xai-protocol}
-
-Because the explainability claim is the one most likely to be over-read, we
-fix in advance what would falsify it. Four tests, in increasing order of
-stringency.
-
-\emph{Deletion (necessity).} Remove the top-$k$ interactions of user $u$ by
-$\hat{\phi}_{ui}$, re-score without retraining, and record the drop in
-$s_{ui}$ for the target item. Compare against removing $k$ random
-interactions and $k$ highest-degree interactions. A faithful attribution must
-produce a steeper degradation curve than both.
-
-\emph{Insertion (sufficiency).} Starting from the empty history, re-introduce
-interactions in descending $\hat{\phi}_{ui}$ order and record how quickly
-$s_{ui}$ recovers. Report the area under both curves, the standard
-comprehensiveness and sufficiency summary.
-
-\emph{Stability.} Recompute $\hat{\phi}_{ui}$ across seeds and across $R \in
-\{4, 8, 16, 32\}$ permutations, and report rank correlation between runs.
-Monte-Carlo attribution with $R = 8$ may not be rank-stable; if it is not, the
-attributions are unusable as explanations even if the recommender itself
-performs well.
-
-\emph{Comparison.} Repeat all three against GNNExplainer
-\citep{ying2019gnnexplainer}, PGExplainer \citep{luo2020pgexplainer} and
-SubgraphX \citep{yuan2021subgraphx}, the last being the closest competitor
-since it also uses Shapley values on graphs.
-
-The victory condition is that $\hat{\phi}$ dominates degree and random
-baselines on deletion and insertion \emph{and} attains rank correlation above
-$0.8$ across seeds. Until these are run, the explainability contribution of
-this work is a design property, not a result.
+A confirmatory study should freeze the loader and search budget, run at least
+five independent seeds, report seed-level mean/SD and user-level paired
+intervals, and retain all tuning traces. It should then execute: (i) matched
+$w/o\ \mathbf G_1/\mathbf G_2/\mathbf G_3$/contrastive/$\mathcal L_{\mathrm{game}}$
+ablations; (ii) 0/5/10/20\% random-edge injection with retraining; (iii)
+training, refresh, memory and serving benchmarks; and (iv) deletion,
+insertion and cross-seed proxy-stability tests against random and degree
+baselines. Attribution should be called explanation only if those tests pass.
+A nested split is required if the ideal validation-NDCG data game is
+implemented. These are future experiments, not preregistered results.
 
 %==========================================================================
 \printcredits
@@ -1730,16 +1590,14 @@ in this paper.
 
 \section*{Ethics and research integrity}
 
-This study uses five publicly released recommendation benchmarks
-(MovieLens-100K, MovieLens-1M, Gowalla, Yelp2018 and Amazon-Book) and recruits
-no human participants. The main table reports single-run measured records; it
-does not report uncertainty or statistical significance. Projection-only
-leaderboards, ablations and random-noise curves from earlier drafts are not
-presented as findings. The measured Shapley-versus-attention comparison is
-partial: clean-data metrics are available, comparative noise resilience and a
-complete GAT-CF tuning audit are not. Per-interaction credits are potentially
-sensitive behavioural artefacts and, absent the pre-specified faithfulness
-tests, are not represented as validated explanations.
+This study uses five publicly released recommendation benchmarks and recruits
+no human participants. The main table contains single-run point estimates with
+no significance claim. Projection-only leaderboards and synthetic ablation or
+noise curves are excluded. Internal interaction credits can reveal sensitive
+historical behaviour; absent faithfulness tests, they are not explanations and
+must not be shown to users as reasons. Broader catalogue exposure may benefit
+providers but can reduce relevance or satisfaction for some users, so provider
+coverage is not treated as an unqualified social benefit.
 
 \section*{Declaration of generative AI use}
 
@@ -1750,10 +1608,12 @@ for the content of the published article.
 
 \section*{Data availability}
 
-The datasets analysed in this study are publicly available: MovieLens-100K
-and MovieLens-1M from GroupLens, and Gowalla, Yelp2018 and Amazon-Book from
-the benchmark sources documented in the repository. Source code and the retained result records are available at
-\url{https://github.com/mouadlouhichi/CoopGCN}.
+MovieLens-100K and MovieLens-1M are available from GroupLens. Gowalla,
+Yelp2018 and Amazon-Book are pinned to LightGCN-PyTorch commit
+\texttt{947ca2b3b1d2d3545b114145710cb06c4e57b3d2}. Source, checkpoints,
+\texttt{data/measured\_results.csv}, and the descriptive-association script are
+available at \url{https://github.com/mouadlouhichi/CoopGCN}; checkpoint
+provenance traces to the \texttt{81da541} code lineage.
 
 \bibliographystyle{cas-model2-names}
 \bibliography{references}

@@ -1,0 +1,76 @@
+evidence_status: preliminary_single_run
+checkpoint_code_lineage: 81da541462499697370963528aebcd2c107da911
+seed: 42
+hardware: not_retained
+python_version: not_retained
+pytorch_version: not_retained
+
+model:
+  embedding_dim: 64
+  propagation_layers: 3
+  embedding_initialization: normal_std_0.05
+  lambda_edge: 0.03
+  learned_norm_scale_initial: 1.0
+  svd_rank: 16
+  attention_mlp: [128, 32, 1]
+  attention_activation: relu
+  pairwise_channel_mix: 0.99
+  hypergraph_channel_mix: 0.01
+
+optimizer:
+  name: Adam
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  batch_size: 2048
+  generated_negative_ids: 64
+  effective_bpr_negatives: 1
+  max_epochs: 1000
+  early_stopping_metric: validation_NDCG_at_20
+  early_stopping_patience: 50
+
+loss:
+  lambda_contrastive: 0.005
+  lambda_game: 0.01
+  lambda_regularization: 0.0001
+  contrastive_temperature: 0.05
+  retained_game_loss_temperature: 1.0
+  propagation_attention_temperature: 0.5
+
+edge_proxy:
+  neighbor_selection: first_32_in_training_adjacency_order
+  tail_bonus: 0.05
+  standardize_if_std_above: 0.000001
+  ema_decay: 0.85
+  refresh_period_epochs: 5
+  legacy_num_permutations_parameter: 25
+  permutations_actually_used: 0
+
+hyperedge_proxy:
+  affinity_coefficient: 1.0
+  tail_share_coefficient: 0.5
+  sigmoid_temperature: 0.5
+  minimum_embedding_norm: 0.00000001
+
+data_proxy:
+  tail_multiplier: 1.02
+  non_tail_multiplier: 0.99
+  ema_decay: 0.80
+  quantile_weight_kappa: 0.01
+  refresh_period_epochs: 20
+  diagnostic_percentile_mask: 5
+  mask_applied_as_pruning: false
+  tmc_steps_actually_used: 0
+
+data_sources:
+  movielens: GroupLens_static_archives
+  lightgcn_repository: gusye1234/LightGCN-PyTorch
+  lightgcn_commit: 947ca2b3b1d2d3545b114145710cb06c4e57b3d2
+
+evaluation:
+  cutoff: 20
+  candidates: all_catalog_items_excluding_training_seen_items
+  eligible_users: users_with_at_least_one_ground_truth_item
+  aggregation: macro_average_over_eligible_users
+  score_tie_break: torch_topk_no_secondary_rule
+  tail_definition: training_degree_at_or_below_80th_percentile
+  tail_recall_users: users_with_at_least_one_tail_ground_truth_item

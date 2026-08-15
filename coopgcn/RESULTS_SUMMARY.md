@@ -1,7 +1,9 @@
 # CoopGCN — Measured Result Summary
 
-**Protocol:** global temporal split (70% train / 10% validation / 20% test),
-full-catalogue ranking at cut-off 20. Degrees, hyperedges and tail masks use
+**Protocol:** MovieLens uses a global temporal 70/10/20 split. Gowalla,
+Yelp2018 and Amazon-Book use a pinned LightGCN train/test snapshot, with its
+test interaction stream divided 33/67 for validation/test. Ranking is over all
+items unseen in training at cut-off 20. Degrees, hyperedges and tail masks use
 training edges only.
 
 ## Evidence status

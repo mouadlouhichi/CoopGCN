@@ -1,11 +1,11 @@
-dataset,scope,n_models,spearman_ndcg_coverage
-ML-100K,all models,10,-0.636
-ML-100K,graph models,7,-0.179
-ML-1M,all models,10,-0.842
-ML-1M,graph models,7,-0.607
-Gowalla,all models,10,0.006
-Gowalla,graph models,7,-0.107
-Yelp2018,all models,10,0.305
-Yelp2018,graph models,7,0.775
-Amazon-Book,all models,10,0.841
-Amazon-Book,graph models,7,0.885
+dataset,scope,n_models,spearman_ndcg_coverage,lomo_min,lomo_max
+ML-100K,all models,10,-0.636,-0.800,-0.500
+ML-100K,graph models,7,-0.179,-0.429,0.314
+ML-1M,all models,10,-0.842,-0.950,-0.783
+ML-1M,graph models,7,-0.607,-0.943,-0.371
+Gowalla,all models,10,0.006,-0.233,0.333
+Gowalla,graph models,7,-0.107,-0.429,0.429
+Yelp2018,all models,10,0.305,0.193,0.798
+Yelp2018,graph models,7,0.775,0.638,0.986
+Amazon-Book,all models,10,0.841,0.766,0.883
+Amazon-Book,graph models,7,0.885,0.775,1.000

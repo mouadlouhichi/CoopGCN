@@ -1,5 +1,5 @@
 """
-CoopGCN: Axiomatic Credit Assignment in Graph Convolutional Networks
+CoopGCN: Cooperative-game-inspired credit proxies for graph collaborative filtering
 via Cooperative Game Theory for Robust, Preference-Aware Recommendation.
 
 Modules:
@@ -7,7 +7,7 @@ Modules:
 - models: MCShapleyEdgeWeighting (G1), ShapleyHypergraphConv (G2), SVDContrastiveView,
           CoopGCN full architecture, and baselines (MF, NCF, LightGCN, RecDCL, HCCF, HPCF, DyHuCoG).
 - losses: Multi-task objective combining L_rank (gBCE), L_cl (InfoNCE), and L_game (consistency).
-- shapley_data: Offline TMC-Shapley data valuation (G3) & noise pruning.
+- shapley_data: Legacy-named score-and-tail data proxy (G3); no retained pruning.
 - evaluator: Multi-dimensional evaluation (NDCG@K, Recall@K, TR@K, Coverage@K, Gini, Noise Immunity).
 - trainer: Amortized training loop with MPS/CUDA/CPU support and periodic Shapley refresh.
 - visualization: Publication-quality figure generation.

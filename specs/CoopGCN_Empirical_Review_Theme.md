@@ -1,5 +1,9 @@
 # CoopGCN: Cross-Dataset Empirical Review Theme & Scientific Analysis
 
+> **Single-run record.** This document supplies the point estimates transcribed
+> to `data/measured_results.csv`. It does not provide seed uncertainty or prove
+> that retained deterministic credit proxies are Shapley estimators.
+
 **An authoritative synthesis of empirical benchmark evaluations across MovieLens-100K, MovieLens-1M, Gowalla, Yelp2018, and Amazon-Book under strict temporal holdout protocols.**
 
 This document reports results from the **10-Model Canonical Recommendation Suite** evaluated under global temporal splits (70% Train / 10% Validation / 20% Test), full-ranking @20 protocol (no sampling).

@@ -5,11 +5,11 @@ This directory contains the official PyTorch package for **CoopGCN**, along with
 ---
 
 ## Package Structure (`coopgcn/`)
-- `dataset.py`: Benchmark dataset loader (MovieLens-100K, MovieLens-1M, Gowalla), temporal splits, and Step 0.5 Leakage Audit (`audit_leakage()`).
-- `models.py`: `MCShapleyEdgeWeighting` ($\mathbf{G_1}$), `ShapleyHypergraphConv` ($\mathbf{G_2}$), `SVDContrastiveView`, `CoopGCN`, and baselines (`LightGCN`, `LightGCN++`, `GAT-CF`, `DyHuCoG`).
-- `shapley_data.py`: Truncated Monte-Carlo Data-Shapley valuation ($\mathbf{G_3}$) and bottom-5% noise pruning.
-- `losses.py`: Multi-task objective (`CoopGCNLoss`) with Shapley-to-attention consistency regularization ($\mathcal{L}_{\text{game}}$); serving omits Shapley sampling but residual attention latency is unmeasured.
-- `evaluator.py`: Multi-dimensional metrics (`NDCG@20`, `Recall@20`, `TR@20`, `Coverage@20`, `Gini`, Noise Immunity).
+- `dataset.py`: loaders for five benchmarks. MovieLens uses temporal splits; Gowalla/Yelp/Amazon use a pinned upstream split. All graph-derived quantities use train edges.
+- `models.py`: legacy-named deterministic edge/group credit proxies, `SVDContrastiveView`, `CoopGCN`, and baselines. The retained proxy methods are not MC Shapley estimators.
+- `shapley_data.py`: retained score-and-tail sample-weight proxy ($\mathbf{G_3}$); a bottom-5% mask is computed but not applied as pruning.
+- `losses.py`: retained weighted-BPR objective and edge-proxy-to-attention consistency regularization; attention latency is unmeasured.
+- `evaluator.py`: NDCG, Recall, TR, Coverage and Gini. Its noise helper is a template, not measured evidence.
 - `trainer.py`: Amortized training schedule optimized for universal hardware acceleration (`MPS`, `CUDA`, or `CPU`).
 - `visualization.py`: Generates publication academic figures (`./figures/`).
 

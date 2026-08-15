@@ -1,4 +1,8 @@
-# CoopGCN: Axiomatic Credit Assignment in Graph Convolutional Networks via Cooperative Game Theory for Robust, Preference-Aware Recommendation
+# CoopGCN: Historical Paper Blueprint
+
+> **Superseded by `paper/coopgcn_cas.tex`.** Projected accuracy, ablation,
+> robustness and zero-overhead claims below are design targets, not retained
+> measurements.
 
 **Paper Structure & Academic Blueprint**  
 *Target Venues: ACM RecSys / KDD / WSDM / TOIS*  

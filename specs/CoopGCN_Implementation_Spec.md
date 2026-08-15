@@ -1,5 +1,9 @@
 # CoopGCN — Formalization & Implementation Specification
 
+> **Target specification, not measured execution path.** Retained checkpoints
+> use the deterministic proxies in `paper/retained_run_manifest.yaml`, not the
+> MC/TMC estimators below.
+
 **Technical Companion to `CoopGCN_Paper_Structure.md` and `CoopGCN_Spec.md`**
 
 This document provides the formal mathematical definitions, exact characteristic value functions $v(S)$, complete multi-task loss equations, computational complexity analysis, executable PyTorch pseudo-code, and comprehensive experimental harness design for **CoopGCN**. It explicitly resolves all open questions from external peer review and establishes the benchmark evaluation protocol.

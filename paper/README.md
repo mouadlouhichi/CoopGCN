@@ -1,10 +1,70 @@
-# CoopGCN manuscript
+# CoopGCN preliminary methods manuscript
 
-The authoritative manuscript source is [`coopgcn_cas.tex`](coopgcn_cas.tex),
-typeset with Elsevier's `cas-dc` class. The scientific revisions in the current
-source are journal-independent: measured evidence is separated from design
-history, and unsupported claims have been removed rather than hidden in
-limitations.
+The authoritative source is [`coopgcn_cas.tex`](coopgcn_cas.tex). The current
+revision takes the narrow-scope route requested by peer review: two descriptive
+research questions, no robustness/XAI/efficiency claim, and an explicit
+separation between ideal Shapley theory and the deterministic proxies used by
+the retained checkpoints.
+
+## Evidence status
+
+- Five datasets and ten configurations.
+- One retained run per model–dataset cell (seed 42).
+- No seed variance, confidence interval, component ablation, corruption study,
+  attribution-faithfulness result, or runtime/memory benchmark.
+- MovieLens uses global temporal splits; Gowalla/Yelp/Amazon use a pinned
+  LightGCN snapshot without timestamps.
+- Main measured values: [`../data/measured_results.csv`](../data/measured_results.csv).
+- Split/hyperedge manifest: [`../data/dataset_protocol.csv`](../data/dataset_protocol.csv).
+- Descriptive cross-model association generator:
+  [`../scripts/analyze_measured_tradeoff.py`](../scripts/analyze_measured_tradeoff.py).
+
+## Critical implementation correspondence
+
+The class and method names in the released package retain historical
+“Shapley”/“TMC” terminology for checkpoint compatibility. The measured
+execution path is:
+
+- **G1:** centered edge–user alignment, tail bonus 0.05, within-neighbourhood
+  standardization, EMA 0.85;
+- **G2:** mean off-diagonal cosine affinity + 0.5 tail share, sigmoid
+  temperature 0.5, channel mixture 0.01;
+- **G3:** sigmoid score × tail factor, EMA 0.80, quantile reweighting up to
+  1.01; a 5% mask is computed but not applied;
+- **ranking:** weighted BPR using one effective negative, although 64 IDs are
+  generated;
+- **bridge:** an MLP distils the edge proxy; its training target is untempered
+  while propagation uses temperature 0.5.
+
+These quantities are deterministic cooperative-game-inspired proxies—not exact,
+MC, or TMC Shapley estimators. The ideal-game propositions do not establish
+properties of the measured implementation.
+
+## Main review fixes
+
+1. Front matter labels the paper a **preliminary methods study**.
+2. Formal RQ3–RQ5 and the unmeasured ablation matrix were removed.
+3. Robustness was removed from the title, abstract claims, keywords and measured
+   metric set.
+4. XAI positioning was reduced to a future conditional test; internal credits
+   are not validated explanations.
+5. The nine-baseline retained set is authoritative; SGL/SimGCL are related work
+   only because no common-protocol record survives.
+6. Candidate filtering, user eligibility, TR averaging, score ties, split
+   construction, source commit and hyperedge generation are specified.
+7. All retained CoopGCN constants and legacy implementation mismatches are
+   tabulated.
+8. The measured table uses separate NDCG/TR/Coverage panels.
+9. Cross-model Spearman associations include average-rank tie handling and
+   leave-one-model-out ranges; sparse collapsed-cluster confounding is explicit.
+10. Theoretical modulation now matches released code:
+    `1 + 2 lambda (sigmoid(credit/tau) - 1/2)`.
+11. G3 is described as reweighting only; no pruning/denoising claim remains.
+12. Reference encoding and recommendation-specific explanation coverage were
+    corrected.
+
+See [`../review/RESPONSE_TO_R4.md`](../review/RESPONSE_TO_R4.md) for the
+itemized response.
 
 ## Files
 
@@ -12,91 +72,14 @@ limitations.
 |---|---|
 | `coopgcn_cas.tex` | Authoritative manuscript source |
 | `references.bib` | Bibliography |
-| `cas/` | Elsevier CAS class and bibliography files |
-| `build_preview_pdf.py` | No-LaTeX preview renderer |
-| `CoopGCN_CAS_preview.pdf` | Generated preview; regenerate after source edits |
-| `measured_tradeoff.csv` | Generated NDCG/Coverage rank-correlation sensitivity output |
-| `../data/measured_results.csv` | Machine-readable single-run measured table |
-| `../scripts/analyze_measured_tradeoff.py` | Standard-library sensitivity analysis generator |
-| `coopgcn_array.tex` | Older manuscript retained only for history; do not submit |
-| `figures/Figure_1.png` | Fallback rendering of the architecture figure |
+| `CoopGCN_CAS_preview.pdf` | Generated no-LaTeX preview |
+| `measured_tradeoff.csv` | Generated rank-association/LOMO output |
+| `build_preview_pdf.py` | Preview renderer |
+| `coopgcn_array.tex` | Historical manuscript; do not submit |
 
-## Evidence policy in the current revision
+## Build
 
-The manuscript's main results now use only the retained **single-run measured
-record** summarized in `specs/CoopGCN_Empirical_Review_Theme.md`:
-
-- 5 datasets: ML-100K, ML-1M, Gowalla, Yelp2018 and Amazon-Book;
-- 10 models;
-- NDCG@20, Tail Recall@20 and Coverage@20;
-- one point estimate per model–dataset cell, with no variance estimate.
-
-The projected CSVs under `main_results/expected_*.csv` are design-history
-artifacts, not experimental evidence. Their leaderboards, component ablation,
-noise curves, gain table and derived figures have been removed from the
-manuscript's results section because executed CoopGCN values contradict them.
-They must not be cited as findings.
-
-The current measured evidence supports only a preliminary, regime-dependent
-accuracy–exposure trade-off. It does **not** establish:
-
-- universal ranking-accuracy superiority;
-- measured component attribution;
-- random-noise or adversarial robustness;
-- attribution faithfulness/explainability;
-- statistical significance;
-- zero latency or a wall-clock training budget.
-
-## Main peer-review corrections
-
-1. **Measured evidence is primary.** The projection-led Tables 8–10/12 and
-   Figures 2–7 were removed from the results narrative.
-2. **Measured scope is consistent.** The manuscript now presents the complete
-   retained 5-dataset × 10-model table instead of describing five/ten while
-   displaying only three/seven.
-3. **GAT-CF status is consistent.** It is measured, but the central comparison
-   is only partly answered: clean tail/coverage are available, comparative
-   noise resilience and tuning traces are not.
-4. **GAT-CF collapse is not over-interpreted.** The text explicitly identifies
-   sparse-data collapse as potentially caused by tuning or implementation and
-   requests learning-rate sweeps and training curves.
-5. **No stale Amazon-Book gain remains.** Both 12.1% and projection-dependent
-   26.3% headline claims were removed.
-6. **Ablation and robustness claims were withdrawn.** The projected 62.2% G1
-   attribution and 5.4–5.7% degradation figures are named only to explain why
-   they cannot be treated as findings.
-7. **Theory is narrowed.** Proposition 2 is a per-edge, per-layer Channel-A
-   bound relative to a non-zero reference—not a full-model or NDCG robustness
-   theorem. The degree normalization uses `sqrt(d_u d_i)` consistently.
-8. **Characteristic-function boundaries are defined.** Every game defines
-   `v(empty)=0`; diversity is zero for coalitions smaller than two.
-9. **Axioms are scoped to credit.** Efficiency/additivity are properties of
-   exact Shapley credit, not sigmoid-transformed or distilled deployed weights.
-   Full propagation weights retain degree normalization.
-10. **Serving claims are narrowed.** Inference performs no Monte-Carlo Shapley
-    sampling, but residual attention latency is unmeasured.
-11. **Statistical limits are prominent.** The abstract, results, conclusion,
-    limitations and ethics statement all identify the evidence as single-run
-    and non-significant.
-12. **Unexecuted XAI is not claimed.** Deletion, insertion, stability and
-    explainer comparisons remain a pre-specified protocol.
-
-## Experiments still required
-
-These issues cannot be fixed honestly by editing prose or inventing values:
-
-1. at least five independent seeds or user-level bootstrap intervals;
-2. a documented and matched tuning budget, especially for GAT-CF;
-3. measured `w/o G1/G2/G3/CL/L_game` ablations;
-4. independently retrained 0/5/10/20% random-injection experiments;
-5. training time, inference latency, memory and distillation-gap measurements;
-6. deletion/insertion/stability attribution evaluation.
-
-Until those runs exist, the manuscript deliberately leaves RQ3–RQ5 open.
-
-## Building
-
-With a TeX distribution, from `paper/`:
+With TeX:
 
 ```bash
 pdflatex coopgcn_cas
@@ -105,12 +88,8 @@ pdflatex coopgcn_cas
 pdflatex coopgcn_cas
 ```
 
-Without TeX, install the Python dependencies (`matplotlib` and `reportlab`) and
-run:
+Without TeX, install `matplotlib` and `reportlab`, then run:
 
 ```bash
 python build_preview_pdf.py
 ```
-
-The preview renderer parses `coopgcn_cas.tex`; the LaTeX source remains the
-submission artifact.

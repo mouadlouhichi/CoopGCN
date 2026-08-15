@@ -1,5 +1,9 @@
 # 8-Year Recommender Systems Leaderboard (2018–2026)
 
+> **Historical literature/design document.** CoopGCN placements and robustness
+> claims here are not supported by the retained single-run proxy record. Use
+> `paper/coopgcn_cas.tex` and `data/measured_results.csv` for current evidence.
+
 ## Recall & NDCG — Ordered by the Best
 
 > **Last updated:** 11 Aug 2026 · Casablanca (Africa/Casablanca)  

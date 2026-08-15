@@ -1,7 +1,8 @@
 """
 100% REAL benchmark dataset loader, automated downloader & caching for CoopGCN.
-Downloads and loads real MovieLens-100K (ML-100k), MovieLens-1M (ML-1M), Gowalla, Yelp2018, and Amazon-Book.
-Enforces strict Data Leakage Audit protocol (Step 0.5) with ZERO synthetic data.
+Loads MovieLens-100K/1M with temporal splits and a pinned LightGCN snapshot for
+Gowalla, Yelp2018 and Amazon-Book (which has no timestamps). Enforces train vs
+validation/test pair disjointness; the dummy generator is reserved for tests.
 """
 
 import os
@@ -15,8 +16,8 @@ from collections import defaultdict
 
 class BenchmarkDataset:
     """
-    Holds 100% REAL user-item interaction graph, temporal splits (train/val/test),
-    item popularity metadata (head vs tail items), and training-only hyperedges.
+    Holds a user-item interaction graph, dataset-specific train/val/test splits,
+    training-degree tail labels, and training-only hyperedges.
     Enforces strict Data Leakage Audit protocol (Step 0.5).
     """
 
@@ -112,7 +113,7 @@ class BenchmarkDataset:
 
     def inject_noisy_edges(self, noise_ratio=0.10, seed=42):
         """
-        Injects random adversarial/noisy edges into the training graph to evaluate noise immunity.
+        Injects random edges into the training graph for a future corruption study.
         Returns a new BenchmarkDataset with injected noisy edges.
         """
         np.random.seed(seed)
@@ -284,7 +285,12 @@ def _download_lightgcn_text_benchmark(dataset_name, cache_dir="./data"):
     Constructs co-occurrence hyperedges strictly from training interactions.
     """
     name_lower = dataset_name.lower()
-    base_url = f"https://raw.githubusercontent.com/gusye1234/LightGCN-PyTorch/master/data/{name_lower}"
+    # Pin the upstream benchmark snapshot used by the retained protocol.
+    source_commit = "947ca2b3b1d2d3545b114145710cb06c4e57b3d2"
+    base_url = (
+        "https://raw.githubusercontent.com/gusye1234/LightGCN-PyTorch/"
+        f"{source_commit}/data/{name_lower}"
+    )
     os.makedirs(os.path.join(cache_dir, name_lower), exist_ok=True)
     train_file = os.path.join(cache_dir, name_lower, "train.txt")
     test_file = os.path.join(cache_dir, name_lower, "test.txt")

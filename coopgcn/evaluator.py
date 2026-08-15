@@ -3,8 +3,8 @@ Multi-dimensional evaluation harness for CoopGCN:
 - NDCG@K and Recall@K (Overall Accuracy)
 - Tail Recall TR@K (Long-tail recommendation accuracy on bottom 80% items)
 - Catalog Coverage@K and Gini Index (Catalog equity & diversity)
-- Noise Immunity under adversarial edge injection (0%, 5%, 10%, 20%)
-100% bounds-safe on Apple Metal MPS / CUDA.
+- A placeholder random-edge-injection helper (not a measured robustness result)
+Bounds-safe on Apple Metal MPS / CUDA.
 """
 
 import numpy as np
@@ -142,8 +142,10 @@ def compute_all_metrics(
 
 def evaluate_noise_immunity(model_class, dataset, epochs=30, noise_ratios=[0.0, 0.05, 0.10, 0.20], device="cpu"):
     """
-    Evaluates model accuracy degradation under adversarial edge injection.
-    Returns dict mapping noise_ratio -> NDCG@20 score.
+    Placeholder API for future random-edge-injection evaluation.
+
+    The current implementation returns the requested ratios, not trained NDCG
+    values, and must not be cited as robustness evidence.
     """
     results = {}
     for ratio in noise_ratios:

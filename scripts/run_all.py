@@ -1,9 +1,12 @@
 """
 CLI Automation script for running the complete CoopGCN benchmark across target datasets,
-including automated data download & caching, head-to-head baseline training across the 10-model canonical suite
-(MF, NCF, LightGCN, LightGCN++, GAT-CF, RecDCL, HCCF, HPCF, DyHuCoG, and CoopGCN),
-THE Central Make-or-Break Ablation, the Component Ablation Study,
-adversarial edge noise immunity, and generating publication figures and LaTeX tables.
+including data loading, a 10-configuration benchmark, exploratory component
+disabling, and random-edge-injection templates.
+
+IMPORTANT: this runner does not reproduce the retained manuscript table unless
+its configuration is made identical to paper/retained_run_manifest.yaml. Its
+legacy G1/G2/G3 names refer to deterministic proxies, and outputs are not
+publication evidence without multi-seed validation.
 """
 
 import os
@@ -50,7 +53,8 @@ def run_benchmark(
 
     device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
     print(f"🖥️  Platform OS: {platform.system()} ({platform.release()}) — {platform.machine()}")
-    print(f"🚀 Running Complete CoopGCN 10-Model Benchmark on device: [{device.upper()}] (Resume={resume})")
+    print(f"🚀 Running exploratory 10-configuration benchmark on [{device.upper()}] (Resume={resume})")
+    print("⚠️  Single-run outputs are not manuscript evidence; retained G1/G2/G3 are deterministic proxies.")
 
     all_dataset_results = {}
     primary_dataset = None
@@ -169,9 +173,9 @@ def run_benchmark(
     print(f"\n📊 Multi-dataset benchmark results saved to {csv_path}")
     print(df_overall.round(4))
 
-    # Experiment 3: THE Central Make-or-Break Ablation
+    # Experiment 3: exploratory retained-proxy versus attention configuration
     print("\n" + "=" * 70)
-    print("EXPERIMENT 3: THE Central Make-or-Break Ablation (Shapley vs. Attention)")
+    print("EXPERIMENT 3: Exploratory proxy-vs-attention configuration comparison")
     print("=" * 70)
     ablation_df = all_dataset_results[target_datasets[0]].loc[
         ["LightGCN", "LightGCN++", "GAT-CF", "DyHuCoG", "CoopGCN (Ours)"],
@@ -184,7 +188,7 @@ def run_benchmark(
     print("EXPERIMENT 4: Component Ablation Study (G1, G2, G3, L_game)")
     print("=" * 70)
     ablation_models = {
-        "CoopGCN (w/o G1 Edge Shapley)": CoopGCN(
+        "CoopGCN (w/o G1 Edge Proxy)": CoopGCN(
             primary_dataset.num_users,
             primary_dataset.num_items,
             embed_dim=32,
@@ -192,7 +196,7 @@ def run_benchmark(
             lambda_param=0.0,
             num_hyperedges=max(10, len(primary_dataset.hyperedges)),
         ),
-        "CoopGCN (w/o G2 Hyperedge Shapley)": CoopGCN(
+        "CoopGCN (w/o G2 Hyperedge Proxy)": CoopGCN(
             primary_dataset.num_users,
             primary_dataset.num_items,
             embed_dim=32,
@@ -258,9 +262,9 @@ def run_benchmark(
     df_comp = pd.DataFrame(component_ablation).T
     print(df_comp.round(4))
 
-    # Experiment 5: Adversarial Edge Noise Immunity
+    # Experiment 5: exploratory random-edge injection
     print("\n" + "=" * 70)
-    print("EXPERIMENT 5: Adversarial Edge Noise Immunity (0%, 5%, 10%, 20%)")
+    print("EXPERIMENT 5: Exploratory Random-Edge Injection (0%, 5%, 10%, 20%)")
     print("=" * 70)
     noise_ratios = [0.0, 0.05, 0.10, 0.20]
     noise_dict = {}
@@ -337,9 +341,9 @@ def run_benchmark(
     df_noise.index = [f"{int(r*100)}% Noise" for r in noise_ratios]
     print(df_noise.round(4))
 
-    # Experiment 6: Publication Figure & Table Generation
+    # Experiment 6: exploratory figure and table generation
     print("\n" + "=" * 70)
-    print("EXPERIMENT 6: Generating Publication Figures & LaTeX Tables")
+    print("EXPERIMENT 6: Generating Exploratory Figures & LaTeX Tables")
     print("=" * 70)
     plot_benchmark_results(
         primary_results_dict,
@@ -347,7 +351,7 @@ def run_benchmark(
         primary_history_dict,
         output_dir=os.path.join(output_dir, "figures"),
     )
-    print("✅ All 4 publication figures saved to results/figures/ !")
+    print("✅ All 4 exploratory figures saved to results/figures/ !")
 
     emit_all_tables(
         all_dataset_results[target_datasets[0]],
@@ -356,7 +360,7 @@ def run_benchmark(
         df_noise,
         output_dir=os.path.join(output_dir, "tables"),
     )
-    print("✅ All 4 publication LaTeX tables emitted to results/tables/ !")
+    print("✅ All 4 exploratory LaTeX tables emitted to results/tables/ !")
     print("\n🏆 COMPLETE RUN_ALL FINISHED SUCCESSFULLY!")
 
 

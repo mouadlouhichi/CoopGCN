@@ -1,5 +1,9 @@
 # CoopGCN — Why LightGCN Stops Improving & The Shapley Upgrade Path (Spec)
 
+> **Historical blueprint.** It describes an ideal Shapley design. The retained
+> measured implementation uses deterministic game-inspired proxies; see
+> `paper/coopgcn_cas.tex`.
+
 **Why LightGCN stops improving — and how cooperative game theory (Shapley) can get us further**
 
 A systematic analysis of LightGCN’s failure modes, the highest-ROI places to build a stronger model, and a concrete blueprint — **CoopGCN** — that injects Shapley values from cooperative game theory into message passing, hypergraph structure, and training. Companion document to `CoopGCN_Paper_Structure.md` and `CoopGCN_Implementation_Spec.md`.

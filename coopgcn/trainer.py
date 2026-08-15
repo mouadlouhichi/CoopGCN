@@ -1,7 +1,7 @@
 """
 Amortized training loop for CoopGCN and baseline models.
 Handles universal PyTorch devices (MPS, CUDA, CPU) across any operating system.
-Executes periodic Shapley EMA refresh (P=10 epochs) and Data-Shapley curation (M=20 epochs).
+Executes periodic edge/group proxy refresh and score-and-tail sample reweighting.
 Includes automatic checkpointing and resumption to prevent re-running completed models.
 """
 
@@ -73,7 +73,7 @@ class CoopGCNTrainer:
             self.dataset.get_sparse_adjacency(device=self.device)
         )
 
-        # Initialize G3 Data-Shapley Valuator
+        # Initialize the legacy-named G3 score-and-tail proxy valuator
         self.data_valuator = TMCShapleyDataValuator(
             num_train_edges=len(self.dataset.train_edges), prune_cutoff_percentile=5.0
         )
@@ -178,7 +178,7 @@ class CoopGCNTrainer:
 
     def _refresh_shapley_values(self):
         """
-        Executes periodic Monte-Carlo / Fast analytical Shapley refresh for G1 and G2.
+        Refreshes the deterministic G1 and G2 credit proxies.
         """
         if hasattr(self.model, "edge_shapley"):
             self.model.edge_shapley.compute_mc_shapley(
@@ -196,7 +196,7 @@ class CoopGCNTrainer:
 
     def _refresh_data_shapley(self):
         """
-        Executes offline TMC-Shapley valuation for G3 Data-Shapley sample weights.
+        Refreshes deterministic G3 score-and-tail sample weights.
         """
         self.data_valuator.evaluate_sample_shapley(
             self.model, self.dataset, self.edge_index, self.topo_norm

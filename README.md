@@ -1,4 +1,4 @@
-# CoopGCN: Axiomatic Credit Assignment in Graph Convolutional Networks via Cooperative Game Theory
+# CoopGCN: Cooperative-Game-Inspired Credit Signals for Long-Tail Graph CF
 
 [![PyTorch](https://img.shields.io/badge/PyTorch-%E2%89%A52.1.0-EE4C2C.svg?style=flat-square&logo=pytorch)](https://pytorch.org/)
 [![Python](https://img.shields.io/badge/Python-%E2%89%A53.10-3776AB.svg?style=flat-square&logo=python)](https://www.python.org/)
@@ -7,7 +7,7 @@
 [![Target: RecSys / KDD](https://img.shields.io/badge/Venue-RecSys%20%2F%20KDD-4B0082.svg?style=flat-square)](#)
 
 This is the official PyTorch implementation and academic specification repository for:
-> **CoopGCN: Axiomatic Credit Assignment in Graph Convolutional Networks via Cooperative Game Theory for Robust, Preference-Aware Recommendation**  
+> **CoopGCN: Cooperative-Game-Inspired Credit Signals for Long-Tail Exposure in Graph Collaborative Filtering — A Preliminary Methods Study**
 > *Mouad Louhichi, et al. (2026)*  
 > **Paper Blueprint:** [`specs/CoopGCN_Paper_Structure.md`](specs/CoopGCN_Paper_Structure.md)  
 > **Technical Specification:** [`specs/CoopGCN_Spec.md`](specs/CoopGCN_Spec.md)  
@@ -25,18 +25,18 @@ While linear Graph Convolutional Networks—most notably **LightGCN**—have bec
 3. **Pairwise-only topological bias**, ignoring multi-item group structures (sessions, categories, social bundles).
 4. **Popularity-bias amplification**, exacerbated by standard BPR loss with uniform negative sampling.
 
-**CoopGCN** models collaborative-filtering message passing as a **cooperative credit-assignment game**. Monte-Carlo Shapley estimates assign approximate credit to edges ($\mathbf{G_1}$), hyperedges ($\mathbf{G_2}$), and training samples ($\mathbf{G_3}$). The four Shapley axioms apply to exact credits; deployed sigmoid-transformed, distilled weights do not preserve all four.
+**CoopGCN** is motivated by cooperative credit assignment, but the retained checkpoints use deterministic proxies: centered edge alignment plus a tail bonus ($\mathbf{G_1}$), affinity-and-tail hyperedge weights ($\mathbf{G_2}$), and score-and-tail sample reweighting ($\mathbf{G_3}$). They are not MC/TMC Shapley estimators and do not inherit Shapley axioms.
 
 ---
 
 ## Key Features & Evidence Status
 
-* 🧩 **Tri-level credit assignment:** Edge, hyperedge and data-level games are implemented alongside an SVD contrastive channel.
-* 📊 **Measured benchmark record:** The retained record covers five datasets and ten models under temporal full-catalogue evaluation. It is **single-run** and has no confidence intervals or significance tests.
+* 🧩 **Tri-level proxy architecture:** Edge, hyperedge and sample-weight proxies are integrated with an SVD contrastive channel; component effects are unmeasured.
+* 📊 **Measured benchmark record:** The retained record covers five datasets and ten configurations. MovieLens uses temporal splits; the other datasets use a pinned upstream split. Every cell is **single-run** with no confidence interval or significance test.
 * ⚖️ **Accuracy–exposure trade-off:** Measured CoopGCN leads direct hypergraph/cooperative peers in NDCG on four of five datasets and in Tail Recall/Coverage on all five, but ranks last among measured graph models on ML-1M NDCG.
 * 🧪 **Projection quarantine:** `main_results/expected_*.csv` contains historical design targets, not measurements. Its ablation and noise curves must not be cited as findings; see [`main_results/ANALYSIS.md`](main_results/ANALYSIS.md).
-* ⚡ **No serving-time Shapley sampling:** $\mathcal{L}_{\text{game}}$ distils EMA credit into attention. Residual attention latency and training overhead have not been measured.
-* 🛡️ **Leakage controls:** Degrees, tail masks and hyperedges are computed from training edges under a global temporal 70/10/20 split and checked by `audit_leakage()`.
+* ⚡ **Distilled proxy attention:** $\mathcal{L}_{\text{game}}$ distils an edge-proxy EMA. Residual attention latency and the retained train/deploy temperature mismatch are unmeasured.
+* 🛡️ **Leakage controls:** Degrees, tail masks and hyperedges use training edges only and split disjointness is asserted. Only MovieLens has timestamps.
 * 🌐 **Cross-platform implementation:** Device selection supports MPS, CUDA and CPU, with checkpoint resumption for benchmark runs.
 
 ---
@@ -52,10 +52,10 @@ CoopGCN/
 ├── LICENSE                                # MIT License
 ├── coopgcn/                               # Main PyTorch Python Package
 │   ├── dataset.py                         # Benchmark dataset downloader & Step 0.5 audit
-│   ├── models.py                          # MCShapleyEdgeWeighting (G1), ShapleyHypergraphConv (G2),
-│   │                                      # SVDContrastiveView, CoopGCN & Baselines
-│   ├── losses.py                          # Multi-task loss + Shapley-to-attention bridge (L_game)
-│   ├── shapley_data.py                    # TMC-Shapley data valuation (G3) & noise pruning
+│   ├── models.py                          # Legacy-named G1/G2 deterministic proxies,
+│   │                                      # SVDContrastiveView, CoopGCN & baselines
+│   ├── losses.py                          # Retained weighted-BPR + proxy-attention bridge
+│   ├── shapley_data.py                    # Legacy-named G3 score/tail reweighting proxy
 │   ├── evaluator.py                       # NDCG@20, Recall@20, Tail Recall TR@20, Coverage@20, Gini
 │   ├── trainer.py                         # Amortized MPS/Metal training schedule
 │   └── visualization.py                   # Academic publication chart generator
@@ -63,7 +63,7 @@ CoopGCN/
 │   ├── run_all.py                         # Terminal-based benchmark & ablation runner
 │   └── emit_tables.py                     # Emits publication LaTeX tables to ./tables/
 ├── tests/                                 # Pytest Unit Test Suite
-│   ├── test_propositions.py               # Asserts 4 Shapley Axioms, Proposition 1 & 2, Step 0.5 Leakage
+│   ├── test_propositions.py               # Local credit/recovery/split sanity checks
 │   └── test_suite.py                      # Full module, forward pass, and loss coverage tests
 ├── notebooks/
 │   └── coopgcn_run_all.ipynb              # Standalone Executable PyTorch Benchmark Notebook (Universal OS)
@@ -110,9 +110,9 @@ Click **"Run All"**:
 - Executes all **6 Experiments**:
   1. Automated Data Download & Step 0.5 Leakage Audit
   2. Head-to-Head Baseline Training (`LightGCN`, `LightGCN++`, `GAT-CF`, `DyHuCoG`, and `CoopGCN`)
-  3. THE Central Make-or-Break Ablation (Shapley vs. Learnable Attention)
-  4. Complete 10-Row Component Ablation Study ($\mathbf{G_1, G_2, G_3, \mathcal{L}_{\text{game}}}$)
-  5. Optional random-edge-injection runs (these must be retrained and measured before making a robustness claim)
+  3. Configured attention comparison template (not a mechanism-level result)
+  4. Configured component-ablation template (not part of retained evidence)
+  5. Optional random-edge-injection template (must be retrained before any claim)
   6. Publication Figure Generation (`./figures/`) and LaTeX Table Emission (`./tables/`).
 
 ### 4. Option B: Command Line (CLI Automation)
@@ -129,7 +129,7 @@ python3 scripts/emit_tables.py
 
 ## Measured Benchmark Record
 
-The retained common metrics are shown as **NDCG@20 / TR@20 / Coverage@20 (%)**. Each cell is one run; differences are not claims of statistical significance. Machine-readable values are in [`data/measured_results.csv`](data/measured_results.csv), with a reproducible NDCG/Coverage sensitivity analysis in [`scripts/analyze_measured_tradeoff.py`](scripts/analyze_measured_tradeoff.py).
+The retained common metrics are shown as **NDCG@20 / TR@20 / Coverage@20 (%)**. Each cell is one run; differences are not claims of statistical significance. Machine-readable values are in [`data/measured_results.csv`](data/measured_results.csv), exact known settings and missing environment fields are in [`paper/retained_run_manifest.yaml`](paper/retained_run_manifest.yaml), and cross-model association is regenerated by [`scripts/analyze_measured_tradeoff.py`](scripts/analyze_measured_tradeoff.py).
 
 | Model | ML-100K | ML-1M | Gowalla | Yelp2018 | Amazon-Book |
 |---|---:|---:|---:|---:|---:|
@@ -151,7 +151,7 @@ If you find this repository, specification, or codebase useful in your research,
 
 ```bibtex
 @inproceedings{louhichi2026coopgcn,
-  title     = {CoopGCN: Axiomatic Credit Assignment in Graph Convolutional Networks via Cooperative Game Theory for Robust, Preference-Aware Recommendation},
+  title     = {CoopGCN: Cooperative-Game-Inspired Credit Signals for Long-Tail Exposure in Graph Collaborative Filtering---A Preliminary Methods Study},
   author    = {Louhichi, Mouad and contributors},
   booktitle = {Proceedings of the ACM Recommender Systems Benchmark Companion},
   year      = {2026},

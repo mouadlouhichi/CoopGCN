@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Compute descriptive NDCG/Coverage rank correlations from measured records.
+"""Descriptive cross-model NDCG/Coverage associations.
 
-This is a sensitivity diagnostic, not a significance test. It uses only the
-Python standard library and writes a CSV consumed by the manuscript.
+The script reports Spearman rank correlation and leave-one-model-out (LOMO)
+ranges. Model identities are not a random sample, so LOMO ranges are a
+sensitivity diagnostic—not confidence intervals or significance tests.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ OUTPUT = ROOT / "paper" / "measured_tradeoff.csv"
 
 
 def average_ranks(values: list[float]) -> list[float]:
-    """Return ascending average ranks, including exact-value ties."""
+    """Return ascending average ranks, assigning tied values their mean rank."""
     order = sorted(range(len(values)), key=values.__getitem__)
     ranks = [0.0] * len(values)
     start = 0
@@ -47,6 +48,17 @@ def spearman(x: list[float], y: list[float]) -> float:
     return pearson(average_ranks(x), average_ranks(y))
 
 
+def association(records: list[dict[str, str]]) -> tuple[float, float, float]:
+    ndcg = [float(row["ndcg_20"]) for row in records]
+    coverage = [float(row["coverage_20"]) for row in records]
+    rho = spearman(ndcg, coverage)
+    loo = [
+        spearman(ndcg[:i] + ndcg[i + 1 :], coverage[:i] + coverage[i + 1 :])
+        for i in range(len(records))
+    ]
+    return rho, min(loo), max(loo)
+
+
 def main() -> None:
     by_dataset: dict[str, list[dict[str, str]]] = defaultdict(list)
     with INPUT.open(newline="", encoding="utf-8") as handle:
@@ -59,28 +71,28 @@ def main() -> None:
             ("all models", records),
             ("graph models", [r for r in records if r["family"] == "graph"]),
         ):
-            rho = spearman(
-                [float(r["ndcg_20"]) for r in selected],
-                [float(r["coverage_20"]) for r in selected],
-            )
+            rho, loo_min, loo_max = association(selected)
             rows.append(
                 {
                     "dataset": dataset,
                     "scope": scope,
                     "n_models": len(selected),
                     "spearman_ndcg_coverage": f"{rho:.3f}",
+                    "lomo_min": f"{loo_min:.3f}",
+                    "lomo_max": f"{loo_max:.3f}",
                 }
             )
 
     with OUTPUT.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
+        writer = csv.DictWriter(handle, fieldnames=rows[0].keys(), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
     for row in rows:
         print(
-            f"{row['dataset']:12} {row['scope']:12} "
-            f"n={row['n_models']} rho={row['spearman_ndcg_coverage']}"
+            f"{row['dataset']:12} {row['scope']:12} n={row['n_models']} "
+            f"rho={row['spearman_ndcg_coverage']} "
+            f"LOMO=[{row['lomo_min']}, {row['lomo_max']}]"
         )
 
 

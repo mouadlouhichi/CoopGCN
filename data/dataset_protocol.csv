@@ -1,0 +1,6 @@
+dataset,users,items,train_interactions,val_interactions,test_interactions,split_type,hyperedge_count,hyperedge_size,hyperedge_rule
+ML-100K,943,1682,70000,10000,20000,global_temporal_70_10_20,19,at_least_2,train_present_items_grouped_by_genre
+ML-1M,6040,3706,700146,100021,200042,global_temporal_70_10_20,18,at_least_2,train_present_items_grouped_by_genre
+Gowalla,29858,40981,810128,71689,145553,pinned_upstream_train_plus_33_67_test_stream,15,3_to_11,seed42_user_cooccurrence_sampling
+Yelp2018,31668,38048,1237259,106968,217179,pinned_upstream_train_plus_33_67_test_stream,41,3_to_6,seed42_user_cooccurrence_sampling
+Amazon-Book,52643,91599,2380730,199114,404264,pinned_upstream_train_plus_33_67_test_stream,19,3_to_8,seed42_user_cooccurrence_sampling

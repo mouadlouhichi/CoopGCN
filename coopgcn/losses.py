@@ -1,6 +1,6 @@
 """
 Complete multi-task objective for CoopGCN combining:
-- L_rank: Generalized BCE (gBCE) with sampled softmax negatives & G3 Data-Shapley weights.
+- L_rank: retained weighted-BPR path using the first sampled negative & G3 proxy weights.
 - L_cl: InfoNCE contrastive regularization against SVD global view.
 - L_game: Consistency MSE loss regularizing learnable attention toward EMA Shapley targets.
 - L_reg: L2 weight decay.
@@ -54,16 +54,14 @@ class CoopGCNLoss(nn.Module):
         u_emb = final_u[batch_users]
         pos_emb = final_i[batch_pos_items]
 
-        # 1. Ranking loss: generalized BCE over every sampled negative.
-        # Harder negatives receive larger softmax weights at temperature_neg.
-        pos_scores = (u_emb * pos_emb).sum(dim=-1)  # (B,)
-        neg_emb = final_i[batch_neg_items]  # (B, num_negs, d)
-        neg_scores = (u_emb.unsqueeze(1) * neg_emb).sum(dim=-1)  # (B, num_negs)
-        neg_weights = torch.softmax(neg_scores / self.temperature_neg, dim=-1)
-
-        pos_loss = -F.logsigmoid(pos_scores)
-        neg_loss = -(neg_weights * F.logsigmoid(-neg_scores)).sum(dim=-1)
-        l_rank = torch.mean(sample_weights * (pos_loss + neg_loss))
+        # Retained-checkpoint ranking path: weighted BPR using the first sampled
+        # negative. Additional generated negatives are ignored by this legacy
+        # path and are documented as such in the manuscript.
+        pos_scores = (u_emb * pos_emb).sum(dim=-1)
+        neg_emb = final_i[batch_neg_items[:, 0]]
+        neg_scores = (u_emb * neg_emb).sum(dim=-1)
+        loss_bpr = -F.logsigmoid(pos_scores - neg_scores)
+        l_rank = torch.mean(sample_weights * loss_bpr)
 
         # 2. Contrastive InfoNCE Loss (L_cl against SVD global view)
         l_cl = torch.tensor(0.0, device=device)
@@ -85,9 +83,11 @@ class CoopGCNLoss(nn.Module):
         if hasattr(model, "edge_shapley"):
             # Retrieve EMA Shapley targets from buffer (with stop-gradient)
             ema_targets = model.edge_shapley.get_ema_targets(edge_index).detach()
-            temperature = model.edge_shapley.temperature
-            att_probs = torch.sigmoid(attention_logits / temperature)
-            target_probs = torch.sigmoid(ema_targets / temperature)
+            # Retained checkpoints used untempered probabilities in L_game,
+            # although propagation uses temperature=0.5. The manuscript flags
+            # this train/deploy mismatch.
+            att_probs = torch.sigmoid(attention_logits)
+            target_probs = torch.sigmoid(ema_targets)
             l_game = F.mse_loss(att_probs, target_probs)
 
         # 4. L2 Regularization (L_reg)

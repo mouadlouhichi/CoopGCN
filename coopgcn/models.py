@@ -12,9 +12,12 @@ import torch.nn.functional as F
 
 class MCShapleyEdgeWeighting(nn.Module):
     """
-    Channel A: Edge-level Monte-Carlo Shapley weighting (G1).
-    Modulates symmetric LightGCN normalization with Shapley marginal contributions.
-    Supports EMA Shapley buffer with stop-gradient targeting for zero-overhead inference.
+    Channel A credit proxy used by the retained checkpoints.
+
+    Despite the legacy class name, the released implementation does not execute
+    permutation Monte Carlo. It computes a deterministic, centered alignment
+    proxy with a tail bonus, then stores an EMA target for attention distillation.
+    The manuscript distinguishes this executable proxy from ideal Shapley credit.
     """
 
     def __init__(
@@ -47,9 +50,10 @@ class MCShapleyEdgeWeighting(nn.Module):
     @torch.no_grad()
     def compute_mc_shapley(self, user_embeds, item_embeds, user_adj_list, tail_mask=None):
         """
-        Estimates Shapley values phi_ui using Monte-Carlo permutation sampling
-        under consistency utility v^cons(S) + tail diversity utility.
-        Includes numerical stability guards against NaNs and homogeneous zero-variance.
+        Refresh the deterministic edge-credit proxy.
+
+        ``num_permutations`` and this legacy method name are retained for
+        checkpoint/API compatibility; no permutations are sampled here.
         """
         device = user_embeds.device
         for u_id, neighbors in user_adj_list.items():
@@ -127,8 +131,11 @@ class MCShapleyEdgeWeighting(nn.Module):
 
 class ShapleyHypergraphConv(nn.Module):
     """
-    Channel B: Hypergraph convolutional layer weighted by G2 preference-aware Shapley group credits.
-    Extends DyHuCoG by incorporating pairwise affinity, tail share, and diversity.
+    Channel B hypergraph layer used by the retained checkpoints.
+
+    Hyperedge weights are deterministic affinity-plus-tail proxies. The method
+    name is historical; the executable path does not estimate member-level
+    Shapley values.
     """
 
     def __init__(self, num_hyperedges, temperature=0.5):
@@ -140,8 +147,9 @@ class ShapleyHypergraphConv(nn.Module):
     @torch.no_grad()
     def compute_group_shapley(self, hyperedges, item_embeds, tail_mask):
         """
-        Computes group credit beta_h per hyperedge using affinity, tail share, and diversity.
-        Includes numerical stability guards against zero norms and division by zero.
+        Compute beta_h from mean off-diagonal cosine affinity plus 0.5 tail share.
+
+        This is a deterministic group-credit proxy, not a permutation estimator.
         """
         for h_id, h_items in enumerate(hyperedges):
             if len(h_items) < 2 or h_id >= self.num_hyperedges:
@@ -248,7 +256,7 @@ class CoopGCN(nn.Module):
     """
     Full Tri-Channel CoopGCN model combining Channel A (Edge Shapley GCN - G1),
     Channel B (Hyperedge Shapley GCN - G2), and Channel C (SVD Contrastive View)
-    with zero-overhead inference via learnable attention consistency bridge.
+    with a learnable attention consistency bridge. Attention latency is not zero or measured.
     """
 
     def __init__(
@@ -275,7 +283,7 @@ class CoopGCN(nn.Module):
             torch.randn(num_items, embed_dim) * 0.05
         )
 
-        # Learnable attention MLP for zero-overhead inference bridge
+        # Learnable attention MLP for proxy distillation
         self.attention_net = nn.Sequential(
             nn.Linear(embed_dim * 2, 32),
             nn.ReLU(),
@@ -333,7 +341,7 @@ class CoopGCN(nn.Module):
 
     def predict(self, u_ids, i_ids, edge_index, topo_norm, hyperedges=None):
         """
-        Inference-time prediction method (zero-overhead serving).
+        Inference-time prediction; includes the per-edge attention MLP.
         """
         self.eval()
         with torch.no_grad():

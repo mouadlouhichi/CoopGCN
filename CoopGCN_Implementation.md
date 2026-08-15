@@ -1,6 +1,9 @@
 # CoopGCN — Formalization & Implementation Sketch
 
-# CoopGCN — Formalization & Implementation Sketch
+> **Conceptual design document, not retained checkpoint implementation.** The
+> measured checkpoints use deterministic proxies documented in
+> `paper/coopgcn_cas.tex` and `paper/retained_run_manifest.yaml`; they do not
+> execute the MC/TMC estimators sketched below.
 
 Technical companion to *specs/CoopGCN_Spec.md*. This document answers the critical review’s open questions: **exact game definitions (players, coalitions, value functions v(S))** for the three game levels, **loss equations**, **complexity analysis**, **PyTorch pseudo-code** for MC-Shapley edge weighting, and the **ablation/experiment matrix** that decides whether the paper lives or dies.
 

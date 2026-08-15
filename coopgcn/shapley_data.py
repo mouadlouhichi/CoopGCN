@@ -1,7 +1,10 @@
 """
-Data-level game (G3): Truncated Monte-Carlo Shapley (TMC-Shapley) for training-set valuation,
-sample reweighting for ranking loss, and automated bottom-p% noise/poisoning pruning.
-100% vectorized, bounds-safe for PyTorch Metal MPS / CUDA.
+Data-level credit proxy used by the retained CoopGCN checkpoints.
+
+The legacy class/API uses TMC-Shapley terminology, but the executable method is
+an EMA of score-based credits with a tail multiplier and quantile reweighting.
+It computes a bottom-percentile mask; the retained trainer does not apply that
+mask to remove graph edges. This distinction is documented in the manuscript.
 """
 
 import numpy as np
@@ -10,8 +13,10 @@ import torch
 
 class TMCShapleyDataValuator:
     """
-    Computes sample Shapley credits for training interactions (u, i)
-    evaluated on holdout temporal validation ranking accuracy.
+    Computes score-and-tail interaction credits for quantile reweighting.
+
+    The name is retained for compatibility; this implementation does not
+    retrain coalitions or evaluate validation NDCG per TMC permutation.
     """
 
     def __init__(self, num_train_edges, prune_cutoff_percentile=5.0, kappa=0.01):
@@ -24,9 +29,9 @@ class TMCShapleyDataValuator:
 
     def evaluate_sample_shapley(self, model, dataset, edge_index, topo_norm, num_mc_steps=5):
         """
-        Runs fast TMC-Shapley valuation over training interactions.
-        Assigns higher credit to interactions that align with long-tail validation NDCG.
-        Fully vectorized and bounds-safe.
+        Refresh the deterministic score-and-tail proxy.
+
+        ``num_mc_steps`` is retained for API compatibility and is unused.
         """
         device = edge_index.device
         model.eval()
