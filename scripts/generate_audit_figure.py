@@ -34,7 +34,7 @@ axes[1].set_title("L=32 target coverage")
 axes[1].tick_params(axis="x", rotation=30)
 axes[1].grid(axis="y", alpha=.25)
 axes[1].set_ylim(0, 100)
-fig.text(.5, .01, "CODE-LEVEL DIAGNOSTIC — NOT A CORRECTED OUTCOME", ha="center",
+fig.text(.5, .01, "CODE-LEVEL VALUES ONLY", ha="center",
          fontsize=9, color="#8b1a1a", weight="bold")
 fig.tight_layout(rect=(0, .06, 1, 1))
 out.parent.mkdir(parents=True, exist_ok=True)

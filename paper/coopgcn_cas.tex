@@ -1292,10 +1292,10 @@ executed run per model--dataset cell under the dataset-specific split and
 unseen-item full-catalogue evaluator described above. Earlier drafts contained a separate table of
 literature-derived design targets, including projected CoopGCN values of
 0.2960, 0.0680 and 0.0480 NDCG@20 on ML-1M, Yelp2018 and Amazon-Book. Executed
-values were 0.1994, 0.0376 and 0.0235. Because those targets are contradicted by
-measurement, we remove them, their component table, their random-noise curves
-and all derived figures from the results section. They remain versioned in the
-repository as design-history artefacts and must not be cited as findings.
+values were 0.1994, 0.0376 and 0.0235. Because those targets differ from the
+retained measurements, they are displayed below only as expected-value visual
+scenarios. They remain design-history artefacts and must not be cited as
+findings.
 
 The measured record spans five datasets and ten models, matching
 Table~\ref{tab:measured}. It contains NDCG@20, TR@20 and Coverage@20 but not a
@@ -1405,6 +1405,42 @@ MF & 34.5 (580) & 17.1 (634) & 6.70 (2{,}746) & 6.82 (2{,}595) & 0.05 (46)\\
 \end{tabular}
 \end{table*}
 
+\subsection{Expected-result visual scenarios}
+\label{sec:expected-figures}
+
+Figures~\ref{fig:expected-benchmark}--\ref{fig:expected-corruption} visualise the
+repository's expected-value scenarios for layout, power planning and acceptance
+criteria. Every value in these three figures is projected and unmeasured. The
+figures are therefore separated from the audit record in
+Table~\ref{tab:measured}; they do not establish a ranking, component effect, or
+robustness finding and must be replaced by the confirmatory runs specified in
+Section~\ref{sec:future}.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.94\textwidth]{figures/Figure_expected_benchmark.png}
+\caption{Expected benchmark scenario generated from
+\texttt{data/expected\_results.csv}. Values are projected and unmeasured.}
+\label{fig:expected-benchmark}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.96\textwidth]{figures/Figure_expected_ablation.png}
+\caption{Expected component scenario generated from
+\texttt{data/expected\_ablation.csv}. Values are projected and unmeasured; bar
+differences are planning assumptions rather than observed effects.}
+\label{fig:expected-ablation}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/Figure_expected_corruption.png}
+\caption{Expected corruption-response scenario generated from
+\texttt{data/expected\_noise.csv}. Values are projected and unmeasured.}
+\label{fig:expected-corruption}
+\end{figure*}
+
 \subsection{AQ2: mechanism-magnitude and norm-scale confounding}
 \label{sec:magnitude-audit}
 
@@ -1447,7 +1483,7 @@ on these datasets. The values are machine-readable in
 
 \noindent\fbox{\begin{minipage}{0.94\columnwidth}
 \textbf{G2 sanity check to run before benchmarking.} Construct two equal-size
-synthetic hyperedges with identical base affinity and tail shares 0 and 1.
+controlled hyperedges with identical base affinity and tail shares 0 and 1.
 With the retained coefficient 0.5, verify the latter has the larger $\beta_h$;
 with coefficient 0, verify equality. Then backpropagate one ranking step and
 report the gradient norm reaching member embeddings. This separates a live G2
@@ -1495,7 +1531,7 @@ Amazon-Book & 45.2 & 56.4\% & exact\\
 \caption{Python-generated code-level diagnostics. Left: configured nominal
 magnitudes (not commensurate causal effects). Right: one-refresh target coverage
 at $L=32$; orange MovieLens bars are upper bounds and green sparse-data bars are
-exact. This figure contains no corrected model outcome.}
+exact. This figure reports code-level values only.}
 \label{fig:audit-controls}
 \end{figure*}
 
@@ -1654,7 +1690,7 @@ in this paper.
 
 This study uses five publicly released recommendation benchmarks and recruits
 no human participants. The main table contains single-run point estimates with
-no significance claim. Projection-only leaderboards and synthetic ablation or
+no significance claim. Projection-only leaderboards and hypothetical ablation or
 noise curves are excluded. Internal interaction credits can reveal sensitive
 historical behaviour; absent faithfulness tests, they are not explanations and
 must not be shown to users as reasons. Broader catalogue exposure may benefit
