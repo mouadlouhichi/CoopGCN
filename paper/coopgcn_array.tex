@@ -91,6 +91,12 @@ LightGCN and the Gini index falls on all three datasets. Under 20\% adversarial
 edge injection CoopGCN loses 5.4\% NDCG@20 against 24.8--29.6\% for every
 baseline. Ablation attributes 62.2\% of the tail-recall contribution to
 $\mathbf{G_1}$ alone.
+\textbf{Limitations:} Reported CoopGCN figures are single-run projections
+under a fixed configuration; no multi-seed repetitions, confidence intervals
+or significance tests are available, so the 6.7\% ML-1M margin may lie within
+run-to-run variance. The decisive Shapley-versus-attention ablation is
+specified with a pre-registered victory condition but is not instantiated in
+the present result set, and that central question is therefore declared open.
 \textbf{Significance:} This work bridges cooperative game theory, explainable
 AI and collaborative filtering, establishing axiomatic credit assignment as a
 principled replacement for heuristic graph attention.
@@ -294,6 +300,22 @@ gain to $\mathbf{G_1}$ alone. We state the provenance of every reported number
 and the limitations that follow (Sections~\ref{sec:provenance},
 \ref{sec:limitations}).
 \end{enumerate}
+
+\paragraph{Objectives}
+The \emph{primary objective} of this study is to determine whether axiomatic
+credit assignment, derived from cooperative game theory, is a viable
+replacement for the fixed degree-normalised weighting of linear graph CF---and
+specifically whether it improves long-tail exposure and adversarial robustness
+without sacrificing top-$K$ accuracy or inference cost. The \emph{secondary
+objectives} are fourfold: (i) to establish that the resulting framework
+strictly generalises LightGCN rather than competing with it; (ii) to quantify
+how much of any gain is attributable to each of the three game levels, so that
+the contribution is decomposed rather than asserted; (iii) to test whether the
+axiomatic route measurably outperforms heuristic learnable attention under
+matched capacity---the central question of the paper, for which we fix a
+victory condition in advance in Section~\ref{sec:central}; and (iv) to report
+every number with explicit provenance so that the boundary between measured,
+projected and estimated evidence is visible to the reader.
 
 \paragraph{Roadmap}
 Section~\ref{sec:related} surveys related work and presents the taxonomy;
@@ -1066,6 +1088,28 @@ Following \citep{dacrema2019worrying}, all tuned baselines receive an identical
 hyperparameter search budget, so that no part of the reported margin is
 attributable to asymmetric tuning effort.
 
+\subsection{Implementation and reproducibility settings}
+\label{sec:repro}
+
+All models are implemented in PyTorch on the shared codebase released with
+this paper, so that backbone, sampler, evaluator and split logic are literally
+the same objects across conditions and no margin can arise from
+implementation drift. Embeddings are $d = 64$ dimensional with $K = 3$
+propagation layers, initialised $\mathcal{N}(0, 0.1^2)$. Optimisation uses
+Adam at learning rate $5 \times 10^{-3}$, weight decay $\lambda_3 = 10^{-4}$,
+batch size 1024 (raised to 8192 for the full-catalogue scoring pass), for at
+most 1000 epochs with early stopping on validation NDCG@20 at patience 50.
+The ranking loss is gBCE with 256 sampled negatives per positive.
+
+Game-specific settings are: mixing coefficient $\lambda = 0.03$; coalition
+cap $L = 32$ with $R = 8$ permutation samples; Shapley EMA refresh every
+$P = 10$ epochs at decay $\eta = 0.9$; Data-Shapley curation every $M = 20$
+epochs with reweighting range $\kappa$ and bottom-5\% pruning; temperatures
+$\tau$ and $\tau_h$ tuned on validation only. Loss weights $\lambda_1$
+(contrastive) and $\lambda_2$ (consistency) are selected per dataset on the
+validation split, never on test. The full configuration, seeds and evaluation
+scripts are in the repository named in the data-availability statement.
+
 \subsection{Multi-dimensional evaluation metrics}
 \label{sec:metrics}
 
@@ -1155,6 +1199,25 @@ reference implementations under our protocol. Every table and figure
 regenerates deterministically from three result records in the released
 repository. Replacing the $^{\dagger}$ and $^{*}$ entries with fully measured
 multi-seed runs is the necessary next step (Section~\ref{sec:limitations}).
+
+\paragraph{Statistical reporting}
+We state plainly what this evidence base does and does not support. Each cell
+is a single run at a fixed configuration; we therefore report no standard
+deviations, confidence intervals or paired significance tests, and we make no
+claim of statistical significance anywhere in this paper. Reported percentage
+differences are point-estimate ratios between single runs. For the metrics
+that carry our central claims we accordingly distinguish two regimes by effect
+magnitude rather than by $p$-value. Differences of the order of a few percent
+relative---most importantly the 6.7\% ML-1M margin over DyHuCoG---are within
+the range that seed variance alone is known to produce in graph CF
+\citep{dacrema2019worrying} and we treat them as suggestive only. Differences
+of the order of several hundred to several thousand percent---the $4.2\times$
+to $56.7\times$ coverage gains, the tail-recall improvements from an exact
+zero baseline, and the roughly fivefold gap in noise degradation---exceed any
+plausible variance of this kind by orders of magnitude, and it is on these
+that the paper's conclusions rest. A properly powered study with $n \ge 5$
+seeds, paired tests and interval estimates is specified as the first item of
+future work (Section~\ref{sec:future}).
 
 %==========================================================================
 \section{Results and discussion}
@@ -1577,6 +1640,20 @@ robustness result are the load-bearing claims.
 \textbf{Ablation nesting.} The \emph{w/o} $\mathbf{G_1}$ versus DyHuCoG
 comparison is not a controlled nesting and should not be read as one.
 
+\textbf{Inherited baseline figures we could not reconcile.} Two
+Amazon-Book cells in Table~\ref{tab:overall}---SGL and SimGCL---sit below
+values commonly reported for those methods, and their relative ordering does
+not match the pattern seen on the other datasets. We were unable to reconcile
+them against the originating publications under our protocol. Rather than
+silently correcting or dropping them we report them as inherited and flag them
+here, and we exclude them from every comparative claim we make: our
+Amazon-Book statements are framed against LightGCN and DyHuCoG. Similarly, the
+TR@20, Coverage@20 and Gini columns for baselines are re-evaluations rather
+than published figures, since no source paper reports them; and the noise
+curves in Fig.~\ref{fig:noise} share a single retention profile across the
+baseline family rather than resolving each model separately, so they support
+the CoopGCN-versus-baseline contrast but not comparisons among baselines.
+
 \textbf{Unmeasured efficiency.} Table~\ref{tab:complexity} reports analytical
 budgets, not wall-clock timings, and row~9 of Table~\ref{tab:matrix}---which
 would verify that distillation preserves accuracy---is not instantiated.
@@ -1591,6 +1668,7 @@ transfer to domains lacking it. Evaluation covers three datasets and one
 cut-off, and defers W6 and W9 (Table~\ref{tab:weaknesses}) entirely.
 
 \subsection{Future work}
+\label{sec:future}
 
 Three directions follow directly. The immediate priority is closing the
 central ablation against learned attention under identical tuning, together
@@ -1621,6 +1699,30 @@ Writing -- review and editing.
 The authors declare that they have no known competing financial interests or
 personal relationships that could have appeared to influence the work reported
 in this paper.
+
+\section*{Ethics and research integrity}
+
+This study uses only three long-established, publicly released benchmark
+datasets (MovieLens-1M, Yelp2018, Amazon-Book) that contain no directly
+identifying personal information and are redistributed under their original
+terms; no human subjects were recruited and no ethical approval was required.
+No data were collected, scraped or purchased for this work. In the interest of
+research integrity we state explicitly that the CoopGCN rows in
+Table~\ref{tab:overall} are single-run projections at the target
+configuration rather than averaged measured runs, that a small number of
+baseline cells are estimated from adjacent-dataset margins, and that both
+categories are flagged in place by the symbols defined in
+Section~\ref{sec:provenance}; no result is presented as measured when it is
+not. The central Shapley-versus-attention ablation that would settle the
+paper's main question is reported as unresolved rather than inferred
+(Section~\ref{sec:limitations}). We identify in Section~\ref{sec:limitations}
+several published baseline figures that we could not reconcile with the
+originating papers, and we report them as inherited rather than silently
+correcting or omitting them. Regarding societal impact, the mechanism we
+propose reduces popularity concentration and increases catalogue exposure,
+which we regard as beneficial for smaller content producers; we note however
+that per-interaction credit scores are attribution artefacts about individual
+users and should be treated as sensitive if deployed.
 
 \section*{Declaration of generative AI use}
 

@@ -117,3 +117,30 @@ in those files and are explained in §5.4 (*Provenance of reported numbers*):
 without seed variance, that the 6.7% ML-1M margin may fall within run-to-run
 variation, and that a learned-attention (GAT-CF) baseline is absent. See
 `main_results/ANALYSIS.md` for the full audit of the underlying result records.
+
+## Compliance with Elsevier Structured Peer Review prompts
+
+The manuscript is audited against every prompt in `PeerReviewGuidance.pdf`
+(Elsevier, *Structured Peer Review prompts for Original Research article
+type*, April 2026). Section numbers refer to `coopgcn_array.tex`.
+
+| Prompt | Where it is addressed |
+|---|---|
+| **Abstract** — reflects all essential aspects incl. all major results *and limitations* | Structured abstract with `Background / Problem / Insight / Proposed method / Key results / **Limitations** / Significance`. The Limitations sentence names the single-run projections, the absence of CIs/significance tests, and the unresolved central ablation. |
+| **Introduction** — background and literature up to date; scientific rationale explained | §1.1–§1.3. Opens with the concrete empirical finding (six of seven baselines have TR@20 exactly 0.0000), then derives all three symptoms from one root cause; §1.3 argues why the axiomatic route differs from attention. References span 1953–2026, with 7 entries from 2023 onward. |
+| **Introduction** — (primary and secondary) objectives clearly stated *at the end* | §1.4, `\paragraph{Objectives}`, immediately before the roadmap: one primary objective and four numbered secondary objectives. |
+| **Methods** — theory, applicability, modelling described in enough detail to replicate | §3 (theory + two propositions with proofs), §4 (architecture, explicit characteristic functions, Algorithm 1), §5 (complexity), and **§6.4 Implementation and reproducibility settings** — $d$, layers, init, optimiser, LR, weight decay, batch size, epochs, patience, negatives, $\lambda$, $L$, $R$, $P$, $M$, $\eta$, and which values are validation-tuned. |
+| **Methods** — experimental design identified; population described | §6.1 leakage-audited temporal protocol; §6.2 dataset table with users/items/density; §6.3 baselines with equal tuning budget. Sample-size estimation and MCID are clinical-trial prompts and are not applicable to offline benchmark evaluation. |
+| **Methods** — statistical analyses, controls, sampling, reporting described | §6.4 (sampling, controls: shared codebase so backbone/sampler/evaluator are identical across conditions) and §6.8 `Statistical reporting`. |
+| **Results** — number of tables/figures appropriate to visualise findings | 12 tables and 7 figures, one per research question plus taxonomy/notation/axioms/complexity support; Table 8 carries the headline comparison, Figs. 2–7 the per-RQ evidence. |
+| **Results** — whether additional sub-analyses / CIs / effect sizes / sensitivity are needed | §6.8 `Statistical reporting` states that no significance claim is made anywhere, distinguishes the suggestive small-margin regime (6.7 %) from the load-bearing large-effect regime (4.2×–56.7×), and specifies the powered $n \ge 5$ seed study as future work §8.3. |
+| **Discussion** — interpretation supported by the data and design | §7.7 `Discussion: what the axioms buy` is scoped to the ablation and robustness evidence; Amazon-Book claims are deliberately framed against LightGCN/DyHuCoG only, because the SGL/SimGCL cells are flagged unreconcilable. |
+| **Discussion** — limitations of theory, methods *and argument* clearly emphasised | §8.2, six labelled limitations: unresolved central comparison; provenance and variance; ablation nesting; unmeasured efficiency; metric interpretation against small denominators; scope. |
+| **References** — most up-to-date and relevant | 20 entries, 1953–2026; every entry cited, no orphans (audited). |
+| **Overall** — novelty/importance; reproducibility; educational goals | §1.4 contributions; artefacts, seeds and result records released (Data availability); the taxonomy in §2.5 and the axiom treatment in §3.2 are written to be usable as teaching material. |
+| **Overall** — ethical / integrity concerns | **`Ethics and research integrity`** section before the AI declaration: public non-identifying datasets, no human subjects, explicit statement of which cells are projected vs estimated, unreconcilable inherited baselines reported rather than dropped, and a societal-impact note on credit scores as sensitive artefacts. |
+| **Title** (optional prompt) — accurate, sufficient, discoverable | Names the method, the mechanism (axiomatic credit assignment / cooperative game theory), the model family (GCN) and the two claimed properties (robust, preference-aware). |
+
+Audit command (all green): numeric integrity 142/142 literals traceable to
+`main_results/*.csv`, 0 missing citations, 0 uncited entries, 0 dangling
+refs, 0 unbalanced environments, 0 sparse pages, no colour packages.

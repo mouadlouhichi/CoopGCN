@@ -140,7 +140,31 @@ def load_bib():
 BIBE = load_bib()
 
 
+# LaTeX accent macros -> Unicode, applied before brace stripping
+_ACCENTS = [
+    (r"\\v\{s\}", "\u0161"), (r"\\v\{S\}", "\u0160"),
+    (r"\\v\{c\}", "\u010d"), (r"\\v\{C\}", "\u010c"),
+    (r"\\v\{z\}", "\u017e"), (r"\\v\{Z\}", "\u017d"),
+    (r"\\v\{r\}", "\u0159"), (r"\\v\{e\}", "\u011b"),
+    (r"\\'\{a\}", "\u00e1"), (r"\\'\{e\}", "\u00e9"),
+    (r"\\'\{i\}", "\u00ed"), (r"\\'\{o\}", "\u00f3"),
+    (r"\\'\{u\}", "\u00fa"), (r"\\'\{c\}", "\u0107"),
+    (r"\\'\{n\}", "\u0144"), (r"\\'\{s\}", "\u015b"),
+    (r'\\"\{a\}', "\u00e4"), (r'\\"\{o\}', "\u00f6"),
+    (r'\\"\{u\}', "\u00fc"), (r'\\"\{e\}', "\u00eb"),
+    (r"\\`\{a\}", "\u00e0"), (r"\\`\{e\}", "\u00e8"),
+    (r"\\\^\{a\}", "\u00e2"), (r"\\\^\{e\}", "\u00ea"),
+    (r"\\\^\{o\}", "\u00f4"), (r"\\\^\{i\}", "\u00ee"),
+    (r"\\~\{n\}", "\u00f1"), (r"\\~\{a\}", "\u00e3"),
+    (r"\\c\{c\}", "\u00e7"), (r"\\c\{C\}", "\u00c7"),
+    (r"\\ss\b", "\u00df"), (r"\\o\b", "\u00f8"),
+    (r"\\aa\b", "\u00e5"), (r"\\ae\b", "\u00e6"),
+]
+
+
 def clean_braces(s):
+    for pat, rep in _ACCENTS:
+        s = re.sub(pat, rep, s)
     s = s.replace("{", "").replace("}", "")
     s = s.replace("$n$", "n").replace("$", "")
     return s.replace("--", "\u2013")
@@ -541,6 +565,8 @@ def close_wide():
 def emit_paragraphs(txt):
     txt = re.sub(r"(?<!\\)%.*?$", "", txt, flags=re.M)
     txt = re.sub(r"\\label\{[^}]*\}", "", txt)
+    # \paragraph{X} -> bold run-in heading merged into the following sentence
+    txt = re.sub(r"\\paragraph\{((?:[^{}]|\{[^{}]*\})*)\}\s*", r"\\textbf{\1.} ", txt)
     for chunk in re.split(r"\n\s*\n", txt):
         c = chunk.strip()
         if not c:
@@ -711,7 +737,7 @@ fr = Frame(MARGIN + COL_W_G + GUTTER, MARGIN, COL_W_G, H, id="c2",
            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 fw = Frame(MARGIN, MARGIN, BODY_W, H, id="w",
            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
-TBAND = 0.545 * H          # title + abstract + highlights + keywords
+TBAND = 0.70 * H          # title + abstract + highlights + keywords
 ftitle = Frame(MARGIN, MARGIN + H - TBAND, BODY_W, TBAND, id="t",
                leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 ftl = Frame(MARGIN, MARGIN, COL_W_G, H - TBAND - 8, id="tc1",
