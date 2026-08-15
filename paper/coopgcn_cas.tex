@@ -89,7 +89,7 @@ datasets and the highest Tail Recall and Coverage@20 on all five. On ML-1M,
 however, it records NDCG@20 $=0.1994$, below all six graph comparators shown,
 while attaining TR@20 $=0.0075$ and Coverage@20 $=40.7\%$. On Yelp2018 and
 Amazon-Book it records the highest graph-model NDCG@20, 0.0376 and 0.0235.
-GAT-CF is stronger on dense ML-1M but collapses on the two sparse benchmarks;
+GAT-CF is stronger on the two dense benchmarks but collapses on the three sparse benchmarks;
 because its collapse is not yet supported by tuning traces, this comparison is
 preliminary rather than a definitive verdict on attention. No multi-seed,
 measured noise-injection, component-ablation, attribution-faithfulness, or
@@ -138,7 +138,11 @@ lack of per-interaction attribution are often treated as separate problems.
 We investigate whether they share a design limitation inherited from
 LightGCN: propagation has no explicit representation of how much a particular
 interaction contributes. Noise resilience and attribution faithfulness are
-mechanistic hypotheses in this manuscript, not measured findings.
+mechanistic hypotheses in this manuscript, not measured findings. Throughout,
+\emph{credit assignment} means allocating training and propagation influence;
+it does not mean that the credits are faithful human-facing explanations. We
+treat explanation faithfulness as a separate, unexecuted evaluation protocol
+in Section~\ref{sec:xai-protocol}.
 
 \subsection{The LightGCN paradigm and its core trade-off}
 \label{sec:paradigm}
@@ -1277,8 +1281,10 @@ Amazon-Book & 52{,}643 & 91{,}599 & 0.06\% & Co-purchase categories \\
 \subsection{Baseline competitors}
 \label{sec:baselines}
 
-Nine baselines span four families: \textbf{MF}, \textbf{NCF} and \textbf{RecDCL} as non-graph context; \textbf{MF} is trained with BPR
-\citep{rendle2009bpr}; standard graph CF \textbf{LightGCN}
+Nine baselines span four families: \textbf{MF}, \textbf{NCF}
+\citep{he2017ncf} and \textbf{RecDCL} \citep{zhang2024recdcl} as non-graph
+context; \textbf{MF} is trained with BPR \citep{rendle2009bpr}; standard graph
+CF \textbf{LightGCN}
 \citep{he2020lightgcn}; contrastive \textbf{SGL} \citep{wu2021sgl} and
 \textbf{SimGCL} \citep{yu2022simgcl}; norm-weighted \textbf{LightGCN++}
 \citep{lee2024lightgcnpp} and learned-attention \textbf{GAT-CF}; and hypergraph/cooperative \textbf{HCCF}
@@ -1484,6 +1490,17 @@ estimate (0.0376 and 0.0235), only 4.7\% and 5.9\% above LightGCN++.
 Single-run evidence cannot establish that these small margins survive seed or
 tuning variation.
 
+The non-graph context changes the dense-data interpretation. RecDCL reaches
+0.3103 and 0.2997 on ML-100K and ML-1M, respectively, while NCF reaches 0.2939
+and 0.2883---roughly 35--60\% above the best graph-model point estimates. Both
+methods have zero TR@20 on these datasets and markedly lower coverage, so they
+occupy a head-accuracy extreme rather than uniformly dominating the measured
+outcomes. Nevertheless, their scale shows that graph-based credit assignment
+is not the strongest lever for dense-benchmark NDCG in this record. CoopGCN's
+case must therefore rest on a different accuracy--exposure operating point and
+on sparse-regime behavior, not on a general claim that graph propagation is the
+best dense-data architecture.
+
 The retained ML-1M log has contrastive loss around 5.0 against ranking loss
 around 0.11, consistent with over-regularisation, but this post-hoc observation
 does not prove causation. A per-dataset $\lambda_1$ sweep and measured
@@ -1507,9 +1524,55 @@ attention has greater capacity than fixed LightGCN weighting, and its roughly
 tenfold deficit to LightGCN on Yelp2018 is anomalous. Because the retained
 artefacts contain neither learning-rate sweeps nor training curves, we cannot
 rule out the latter. The fair conclusion is that the measured configuration
-of GAT-CF collapsed, not that attention generally fails. The pre-specified
-three-part victory condition is only partly met: CoopGCN leads GAT-CF on tail
-recall and coverage, while measured comparative noise resilience is absent.
+of GAT-CF collapsed, not that attention generally fails. The same standard
+applies to MF: its NDCG@20 falls to 0.0004 on Gowalla and 0.0003 on
+Amazon-Book, far below its dense-data values, without retained tuning traces
+that distinguish a genuine sparse-regime failure from an implementation or
+optimisation artifact. Neither collapse supports an architecture-wide claim.
+The pre-specified three-part victory condition is only partly met: CoopGCN
+leads the retained GAT-CF configuration on tail recall and coverage, while
+measured comparative noise resilience is absent.
+
+\subsection{Descriptive accuracy--coverage sensitivity}
+\label{sec:tradeoff}
+
+A weaker ranker could mechanically expose more items, so coverage gains alone
+do not identify a credit-assignment effect. As a descriptive sensitivity
+check, Table~\ref{tab:tradeoff} reports Spearman rank correlation between
+NDCG@20 and Coverage@20 across the ten model point estimates and, separately,
+across the seven graph models. The calculation is regenerated from
+\texttt{data/measured\_results.csv} by
+\texttt{scripts/analyze\_measured\_tradeoff.py}.
+
+\begin{table}[t]
+\centering
+\caption{Descriptive Spearman $\rho$ between NDCG@20 and Coverage@20 across
+single-run model point estimates. This is a sensitivity diagnostic, not a
+seed-level test or causal estimate.}
+\label{tab:tradeoff}
+\footnotesize
+\begin{tabular}{lrr}
+\toprule
+\textbf{Dataset} & \textbf{All models ($n=10$)} &
+\textbf{Graph models ($n=7$)} \\
+\midrule
+ML-100K & $-0.636$ & $-0.179$ \\
+ML-1M & $-0.842$ & $-0.607$ \\
+Gowalla & $0.006$ & $-0.107$ \\
+Yelp2018 & $0.305$ & $0.775$ \\
+Amazon-Book & $0.841$ & $0.885$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The signs are not uniformly negative: the dense benchmarks show an
+accuracy--coverage trade-off, Gowalla is near zero, and the two largest sparse
+catalogues show positive association. This rules out a universal mechanical
+explanation in which lower NDCG necessarily produces higher coverage, but it
+does not isolate CoopGCN's mechanism. The sample is only 7--10 heterogeneous
+models per dataset, contains ties, and inherits all single-run and tuning
+limitations of Table~\ref{tab:measured}; measured component ablations remain
+necessary for causal attribution.
 
 \subsection{RQ3--RQ4: component attribution and random-noise resilience remain open}
 \label{sec:rq34}
@@ -1543,7 +1606,11 @@ largest against direct hypergraph/cooperative peers in sparse catalogues. On
 dense ML-1M, that redistribution coincides with lower NDCG. Because every cell
 is a single run and baseline tuning traces are incomplete, even this
 regime-dependent interpretation is a hypothesis supported by preliminary
-point estimates, not a statistically established result.
+point estimates, not a statistically established result. Accordingly, this
+manuscript should be read as a methods paper with Stage-1-style preliminary
+validation: the architecture, local theory, leakage controls and falsification
+criteria are complete, whereas confirmatory component, noise, timing,
+attribution and multi-seed studies are not.
 
 %==========================================================================
 \section{Conclusion, limitations and future work}

@@ -129,7 +129,7 @@ python3 scripts/emit_tables.py
 
 ## Measured Benchmark Record
 
-The retained common metrics are shown as **NDCG@20 / TR@20 / Coverage@20 (%)**. Each cell is one run; differences are not claims of statistical significance.
+The retained common metrics are shown as **NDCG@20 / TR@20 / Coverage@20 (%)**. Each cell is one run; differences are not claims of statistical significance. Machine-readable values are in [`data/measured_results.csv`](data/measured_results.csv), with a reproducible NDCG/Coverage sensitivity analysis in [`scripts/analyze_measured_tradeoff.py`](scripts/analyze_measured_tradeoff.py).
 
 | Model | ML-100K | ML-1M | Gowalla | Yelp2018 | Amazon-Book |
 |---|---:|---:|---:|---:|---:|

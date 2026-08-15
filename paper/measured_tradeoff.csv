@@ -1,0 +1,11 @@
+dataset,scope,n_models,spearman_ndcg_coverage
+ML-100K,all models,10,-0.636
+ML-100K,graph models,7,-0.179
+ML-1M,all models,10,-0.842
+ML-1M,graph models,7,-0.607
+Gowalla,all models,10,0.006
+Gowalla,graph models,7,-0.107
+Yelp2018,all models,10,0.305
+Yelp2018,graph models,7,0.775
+Amazon-Book,all models,10,0.841
+Amazon-Book,graph models,7,0.885

@@ -15,6 +15,9 @@ limitations.
 | `cas/` | Elsevier CAS class and bibliography files |
 | `build_preview_pdf.py` | No-LaTeX preview renderer |
 | `CoopGCN_CAS_preview.pdf` | Generated preview; regenerate after source edits |
+| `measured_tradeoff.csv` | Generated NDCG/Coverage rank-correlation sensitivity output |
+| `../data/measured_results.csv` | Machine-readable single-run measured table |
+| `../scripts/analyze_measured_tradeoff.py` | Standard-library sensitivity analysis generator |
 | `coopgcn_array.tex` | Older manuscript retained only for history; do not submit |
 | `figures/Figure_1.png` | Fallback rendering of the architecture figure |
 
