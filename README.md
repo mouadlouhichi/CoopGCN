@@ -25,19 +25,19 @@ While linear Graph Convolutional Networks—most notably **LightGCN**—have bec
 3. **Pairwise-only topological bias**, ignoring multi-item group structures (sessions, categories, social bundles).
 4. **Popularity-bias amplification**, exacerbated by standard BPR loss with uniform negative sampling.
 
-**CoopGCN** addresses these failure modes by modeling collaborative filtering message passing as a **cooperative credit-assignment game**. By leveraging **Shapley values**—the unique allocation satisfying *efficiency, symmetry, dummy player, and additivity* axioms—the model quantifies the exact marginal contribution of individual edges ($\mathbf{G_1}$), hyperedges ($\mathbf{G_2}$), and training samples ($\mathbf{G_3}$).
+**CoopGCN** models collaborative-filtering message passing as a **cooperative credit-assignment game**. Monte-Carlo Shapley estimates assign approximate credit to edges ($\mathbf{G_1}$), hyperedges ($\mathbf{G_2}$), and training samples ($\mathbf{G_3}$). The four Shapley axioms apply to exact credits; deployed sigmoid-transformed, distilled weights do not preserve all four.
 
 ---
 
-## Key Features & Core Guarantees
+## Key Features & Evidence Status
 
-* 🚀 **Empirical Benchmark Evaluation:** All 5 Target Benchmark Datasets (`ML-100k`, `ML-1M`, `Gowalla`, `Yelp2018`, `Amazon-Book`) are downloaded directly from official servers (GroupLens / LightGCN official repository). All reported numbers, ablation tables, and robustness curves are computed from live empirical model evaluation.
-* 🏆 **#1 in Preference-Aware Recommendation & Full-Rank Graph CF (8-Year Leaderboard):** Officially ranked #1 across 2018–2026 literature in **Full-Catalog Graph Collaborative Filtering** (`NDCG@20 = 0.3004` ML-100k / `0.1178` ML-1M), **Long-Tail Recall** (`TR@20` +39% to +65% gain over SOTA baselines), **Catalog Coverage** (`~100%`), and **Adversarial Edge Noise Immunity** (see [`specs/8-Year-Recommender-Leaderboard-Recall-NDCG.md`](specs/8-Year-Recommender-Leaderboard-Recall-NDCG.md)).
-* ⚡ **Zero-Overhead Inference ($\mathcal{L}_{\text{game}}$):** Trains learnable attention weights $a_{ui}$ to target an Exponential Moving Average (EMA) of historical Monte-Carlo Shapley values via $\mathcal{L}_{\text{game}} = \|\sigma(a_{ui}) - \text{sg}(\bar{\hat{\phi}}_{ui})\|^2$. During inference, Shapley sampling is bypassed entirely, achieving zero game-theoretic serving latency.
-* 🛡️ **Strict Evaluation Leakage Safety (Step 0.5):** All datasets are partitioned via a global temporal split (**70% Train / 10% Validation / 20% Test**). Item degrees and hyperedge coalitions are computed strictly from training edges, verified via automated assertions (`audit_leakage()`).
-* 🍏 **Universal PyTorch Hardware Acceleration (NVIDIA CUDA / Apple Metal MPS / CPU):** Full support for `torch.device('mps')` with memory-safe restricted coalitions ($|S| \le 32, T=25$ permutations) keeping offline training overhead below **20%**.
-* 🌐 **Universal Cross-Platform Execution (macOS / Linux / Windows / Colab):** Built with OS-independent path handling and automatic device detection (`MPS`, `CUDA`, or `CPU`). Designed for seamless adoption into the PyTorch ecosystem (modeled after `LightGCN-PyTorch` and `PyTorch Geometric`).
-* 📦 **Automatic Checkpoint Resumption (`checkpoints/`):** Both `notebooks/coopgcn_run_all.ipynb` and `scripts/run_all.py` automatically save model weights and training histories to `./checkpoints/`. If your kernel is interrupted or an error occurs, re-running "Run All" instantly loads completed models and only trains remaining models. Use `--no-resume` in CLI or set `resume=False` to force a fresh retrain.
+* 🧩 **Tri-level credit assignment:** Edge, hyperedge and data-level games are implemented alongside an SVD contrastive channel.
+* 📊 **Measured benchmark record:** The retained record covers five datasets and ten models under temporal full-catalogue evaluation. It is **single-run** and has no confidence intervals or significance tests.
+* ⚖️ **Accuracy–exposure trade-off:** Measured CoopGCN leads direct hypergraph/cooperative peers in NDCG on four of five datasets and in Tail Recall/Coverage on all five, but ranks last among measured graph models on ML-1M NDCG.
+* 🧪 **Projection quarantine:** `main_results/expected_*.csv` contains historical design targets, not measurements. Its ablation and noise curves must not be cited as findings; see [`main_results/ANALYSIS.md`](main_results/ANALYSIS.md).
+* ⚡ **No serving-time Shapley sampling:** $\mathcal{L}_{\text{game}}$ distils EMA credit into attention. Residual attention latency and training overhead have not been measured.
+* 🛡️ **Leakage controls:** Degrees, tail masks and hyperedges are computed from training edges under a global temporal 70/10/20 split and checked by `audit_leakage()`.
+* 🌐 **Cross-platform implementation:** Device selection supports MPS, CUDA and CPU, with checkpoint resumption for benchmark runs.
 
 ---
 
@@ -54,7 +54,7 @@ CoopGCN/
 │   ├── dataset.py                         # Benchmark dataset downloader & Step 0.5 audit
 │   ├── models.py                          # MCShapleyEdgeWeighting (G1), ShapleyHypergraphConv (G2),
 │   │                                      # SVDContrastiveView, CoopGCN & Baselines
-│   ├── losses.py                          # Multi-task loss + Zero-Overhead Inference bridge (L_game)
+│   ├── losses.py                          # Multi-task loss + Shapley-to-attention bridge (L_game)
 │   ├── shapley_data.py                    # TMC-Shapley data valuation (G3) & noise pruning
 │   ├── evaluator.py                       # NDCG@20, Recall@20, Tail Recall TR@20, Coverage@20, Gini
 │   ├── trainer.py                         # Amortized MPS/Metal training schedule
@@ -93,7 +93,7 @@ pip install -r requirements.txt
 ```
 
 ### 2. Verify Mathematical Propositions & Automated Tests
-Run the automated test suite to mathematically verify the **4 Shapley Axioms**, **Proposition 1** (LightGCN & LightGCN++ Recovery), **Proposition 2** (Adversarial Noise Immunity), and **Step 0.5 Leakage Audit**:
+Run the automated test suite for credit-ordering sanity checks, Channel-A recovery at $\lambda=0$, module forward passes, and split-disjointness assertions. These unit tests do not establish end-to-end robustness or statistical superiority:
 ```bash
 python3 tests/test_propositions.py
 python3 tests/test_suite.py
@@ -112,7 +112,7 @@ Click **"Run All"**:
   2. Head-to-Head Baseline Training (`LightGCN`, `LightGCN++`, `GAT-CF`, `DyHuCoG`, and `CoopGCN`)
   3. THE Central Make-or-Break Ablation (Shapley vs. Learnable Attention)
   4. Complete 10-Row Component Ablation Study ($\mathbf{G_1, G_2, G_3, \mathcal{L}_{\text{game}}}$)
-  5. Adversarial Edge Noise Immunity Curves (0%, 5%, 10%, 20% injected noise)
+  5. Optional random-edge-injection runs (these must be retrained and measured before making a robustness claim)
   6. Publication Figure Generation (`./figures/`) and LaTeX Table Emission (`./tables/`).
 
 ### 4. Option B: Command Line (CLI Automation)
@@ -127,21 +127,21 @@ python3 scripts/emit_tables.py
 
 ---
 
-## Empirical Benchmark Results
+## Measured Benchmark Record
 
-As evaluated on global temporal holdout splits (**70% Train / 10% Validation / 20% Test**), CoopGCN demonstrates significant superiority on both overall ranking accuracy and long-tail catalog equity:
+The retained common metrics are shown as **NDCG@20 / TR@20 / Coverage@20 (%)**. Each cell is one run; differences are not claims of statistical significance.
 
-### Table 1: Overall Collaborative Filtering Performance
-| Model / Architecture | NDCG@20 | Recall@20 | Tail Recall TR@20 | Coverage@20 | Gini Index | NDCG Gain (%) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **LightGCN** (Unweighted Floor) | 0.1642 | 0.2315 | 0.0812 | 0.4210 | 0.8124 | 0.0% |
-| **LightGCN++** (*RecSys 2024*) | 0.1889 | 0.2680 | 0.0984 | 0.4720 | 0.7640 | +15.0% |
-| **GAT-CF** (Learnable Attention) | 0.1872 | 0.2645 | 0.0991 | 0.4850 | 0.7510 | +14.0% |
-| **DyHuCoG** (*2025*) | 0.1835 | 0.2590 | 0.1042 | 0.5120 | 0.7120 | +11.8% |
-| **CoopGCN (Ours - Full Tri-Channel)** | **0.2015** | **0.2864** | **0.1180** | **0.5890** | **0.6420** | **+22.7%** |
+| Model | ML-100K | ML-1M | Gowalla | Yelp2018 | Amazon-Book |
+|---|---:|---:|---:|---:|---:|
+| **CoopGCN** | 0.1826 / 0.0106 / 46.9 | 0.1994 / 0.0075 / 40.7 | 0.1089 / 0.0104 / 7.95 | 0.0376 / 0.0006 / 5.36 | 0.0235 / 0.0036 / 6.47 |
+| LightGCN++ | 0.1627 / 0.0100 / 46.5 | 0.2054 / 0.0008 / 37.3 | 0.1092 / 0.0116 / 8.06 | 0.0359 / 0.0006 / 5.01 | 0.0222 / 0.0027 / 5.44 |
+| GAT-CF | 0.1943 / 0.0022 / 19.4 | 0.2096 / 0.0001 / 10.0 | 0.0038 / 0.0005 / 10.3 | 0.0014 / 0.0003 / 0.13 | 0.0002 / 0.0000 / 0.05 |
+| LightGCN | 0.1842 / 0.0036 / 27.8 | 0.2128 / 0.0000 / 9.82 | 0.0348 / 0.0000 / 0.20 | 0.0145 / 0.0000 / 0.35 | 0.0002 / 0.0000 / 0.05 |
+| HPCF | 0.1747 / 0.0020 / 25.7 | **0.2141** / 0.0000 / 9.23 | 0.0278 / 0.0000 / 0.39 | 0.0110 / 0.0000 / 0.48 | 0.0003 / 0.0000 / 0.05 |
+| HCCF | 0.1723 / 0.0019 / 21.2 | 0.2070 / 0.0000 / 8.23 | 0.0291 / 0.0000 / 0.35 | 0.0113 / 0.0000 / 0.25 | 0.0002 / 0.0000 / 0.05 |
+| DyHuCoG | 0.1718 / 0.0026 / 20.5 | 0.2114 / 0.0000 / 9.42 | 0.0338 / 0.0000 / 0.32 | 0.0144 / 0.0000 / 0.35 | 0.0002 / 0.0000 / 0.05 |
 
-> **Why CoopGCN Wins THE Central Ablation:**  
-> While learnable attention (`GAT-CF`) matches Shapley weighting on head-item NDCG@20, **`CoopGCN` improves Tail Recall (TR@20) by +45.3% over LightGCN and +19.1% over GAT-CF**, while increasing catalog **Coverage@20 by +21.4% over attention**. Obeying the 4 Shapley Axioms prevents popular items from free-riding on degree centrality.
+The defensible interpretation is preliminary and regime-dependent: broader tail/catalogue exposure, competitive sparse-data NDCG, and a dense ML-1M accuracy deficit. Measured component, noise, timing and attribution studies remain open.
 
 ---
 

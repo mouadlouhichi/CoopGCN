@@ -1,5 +1,10 @@
 # Senior Reviewer Audit Report — Round 2 (CoopGCN Codebase)
 
+> **Historical document — superseded.** This engineering-only review did not
+> validate the provenance, multi-seed stability, component ablation, robustness,
+> runtime, or attribution claims. Its “perfect implementation” verdict must not
+> be cited; see `FINAL_REVIEW_VERDICT.md` and `RESPONSE_TO_R1_R2.md`.
+
 **Reviewer:** Principal Research Scientist & Senior ML Systems Engineer (Best Model Rigor)  
 **Date:** August 10, 2026  
 **Target Architecture:** Apple Silicon Mac M4 Pro (48GB RAM, Metal MPS GPU Acceleration)  

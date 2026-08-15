@@ -1,9 +1,12 @@
 """
-Unit tests mathematically verifying:
-1. The 4 Shapley Axioms (Efficiency, Symmetry, Dummy Player, Additivity)
-2. Proposition 1: Generalization & Recovery of LightGCN and LightGCN++
-3. Proposition 2: Adversarial Noise Immunity under Consistency Utility
-4. Step 0.5: Data Leakage Audit Protocol
+Unit-level sanity checks for:
+1. credit symmetry and ordering on a toy construction;
+2. exact Channel-A recovery of LightGCN weights at lambda=0;
+3. lower estimated credit for one deliberately inconsistent toy edge; and
+4. split-disjointness in a dummy dataset.
+
+These checks do not prove all Shapley axioms for the implementation, recover
+the complete LightGCN++ system, or establish end-to-end robustness.
 """
 
 import os
@@ -63,10 +66,10 @@ def test_proposition_1_lightgcn_recovery():
     print("✅ Proposition 1 (LightGCN Recovery at lambda=0) verified!")
 
 
-def test_proposition_2_noise_immunity():
-    """
-    Proposition 2: Noisy/adversarial edges receive lower Shapley credit under consistency utility,
-    preventing user embedding corruption.
+def test_inconsistent_edge_receives_lower_credit():
+    """A deliberately anti-aligned toy edge should receive lower estimated credit.
+
+    This is a local ordering check, not an end-to-end robustness test.
     """
     torch.manual_seed(42)
     num_users, num_items, embed_dim = 1, 3, 16
@@ -82,8 +85,8 @@ def test_proposition_2_noise_immunity():
     phi_good = mod.ema_shapley[0, 0].item()
     phi_bad = mod.ema_shapley[0, 1].item()
 
-    assert phi_good > phi_bad, f"Noise immunity failed: good={phi_good} <= bad={phi_bad}"
-    print("✅ Proposition 2 (Adversarial Noise Immunity) verified!")
+    assert phi_good > phi_bad, f"Credit ordering failed: good={phi_good} <= bad={phi_bad}"
+    print("✅ Inconsistent-edge credit ordering sanity check passed!")
 
 
 def test_step_0_5_data_leakage_audit():
@@ -103,6 +106,6 @@ def test_step_0_5_data_leakage_audit():
 if __name__ == "__main__":
     test_shapley_symmetry_and_dummy_axioms()
     test_proposition_1_lightgcn_recovery()
-    test_proposition_2_noise_immunity()
+    test_inconsistent_edge_receives_lower_credit()
     test_step_0_5_data_leakage_audit()
-    print("\n🏆 ALL THEORETICAL PROPOSITIONS & AXIOMS VERIFIED SUCCESSFULLY!")
+    print("\n✅ ALL LOCAL CREDIT, RECOVERY, AND SPLIT SANITY CHECKS PASSED!")

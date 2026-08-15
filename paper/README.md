@@ -1,206 +1,113 @@
-# CoopGCN — Array (Elsevier) manuscript
+# CoopGCN manuscript
 
-Submission-ready manuscript for **Array** (Elsevier, open access; CiteScore 10.1,
-Impact Factor 5.3), prepared against the journal's
-[Guide for Authors](https://www.sciencedirect.com/journal/array/publish/guide-for-authors).
+The authoritative manuscript source is [`coopgcn_cas.tex`](coopgcn_cas.tex),
+typeset with Elsevier's `cas-dc` class. The scientific revisions in the current
+source are journal-independent: measured evidence is separated from design
+history, and unsupported claims have been removed rather than hidden in
+limitations.
 
-## Contents
+## Files
 
-| File | Description |
+| File | Purpose |
 |---|---|
-| `coopgcn_cas.tex` | **Manuscript source — Elsevier CAS double-column class (`cas-dc.cls`)**, the class used by published Array articles |
-| `coopgcn_array.tex` | Previous `elsarticle` version, retained for reference |
-| `references.bib` | **41 references**, BibTeX |
-| `cas/` | Official Elsevier CAS bundle: `cas-dc.cls`, `cas-common.sty`, `cas-model2-names.bst`, plus the upstream template |
-| `example.pdf` | The published exemplar the layout was matched against (*Array* 30 (2026) 100986) |
-| `PeerReviewGuidance.pdf` | Elsevier Structured Peer Review prompts the manuscript is audited against |
-| `figures/Figure_1.png` | Monochrome fallback of the TikZ architecture figure (preview builds only) |
-| `figures/Figure_2..7.png` | Result figures, copied verbatim from `main_results/figures/` |
-| `make_figure1.py` | Regenerates the Figure 1 fallback PNG |
-| `build_preview_pdf.py` | Renders a preview PDF without a TeX installation |
-| `CoopGCN_CAS_preview.pdf` | Rendered preview (16 pp., CAS double-column) |
+| `coopgcn_cas.tex` | Authoritative manuscript source |
+| `references.bib` | Bibliography |
+| `cas/` | Elsevier CAS class and bibliography files |
+| `build_preview_pdf.py` | No-LaTeX preview renderer |
+| `CoopGCN_CAS_preview.pdf` | Generated preview; regenerate after source edits |
+| `coopgcn_array.tex` | Older manuscript retained only for history; do not submit |
+| `figures/Figure_1.png` | Fallback rendering of the architecture figure |
 
-**Figure 1 is drawn in TikZ, black only**, inline in `coopgcn_cas.tex`
-(matching the DyHuCoG house style). Compiling with `pdflatex` uses the TikZ
-picture; `figures/Figure_1.png` exists only so the no-LaTeX preview build has
-an equivalent image.
+## Evidence policy in the current revision
 
-## Template provenance
+The manuscript's main results now use only the retained **single-run measured
+record** summarized in `specs/CoopGCN_Empirical_Review_Theme.md`:
 
-The exemplar `example.pdf` is a published Array article. Inspecting its PDF
-internals shows it is **not** typeset with `elsarticle`: it uses the Elsevier
-**CAS double-column** class. `coopgcn_cas.tex` therefore starts from the
-official CAS bundle in `cas/`, and the following were measured from
-`example.pdf` and reproduced exactly.
+- 5 datasets: ML-100K, ML-1M, Gowalla, Yelp2018 and Amazon-Book;
+- 10 models;
+- NDCG@20, Tail Recall@20 and Coverage@20;
+- one point estimate per model–dataset cell, with no variance estimate.
 
-| Property | Exemplar | This manuscript |
-|---|---|---|
-| Document class | `cas-dc` | `cas-dc` |
-| Page size | 595.28 × 793.70 pt (210 × 280 mm) | 595.28 × 793.70 pt |
-| Margins | `vmargin={19.5mm,18.2mm}`, `hmargin=18.1mm` | identical |
-| Column separation | 18 pt | 18 pt |
-| Body type | 8.0 pt, 10.7 pt leading | 8.0 pt, 10.7 pt leading |
-| Caption/reference type | 7.2 pt | 7.2 pt |
-| Front page | title band, then `ARTICLE INFO` \| `ABSTRACT` | same |
-| Keywords | one per line under `Keywords:` in the info column | same |
-| Bibliography style | `cas-model2-names` (numbered) | `cas-model2-names` |
-| CRediT | `\credit{}` per author + `\printcredits` | same |
-| Back matter order | credits → competing interest → acknowledgements → data availability → references | same (plus an ethics statement) |
+The projected CSVs under `main_results/expected_*.csv` are design-history
+artifacts, not experimental evidence. Their leaderboards, component ablation,
+noise curves, gain table and derived figures have been removed from the
+manuscript's results section because executed CoopGCN values contradict them.
+They must not be cited as findings.
 
-## Building the authoritative PDF
+The current measured evidence supports only a preliminary, regime-dependent
+accuracy–exposure trade-off. It does **not** establish:
 
-`coopgcn_cas.tex` is the artefact to submit. With a TeX distribution:
+- universal ranking-accuracy superiority;
+- measured component attribution;
+- random-noise or adversarial robustness;
+- attribution faithfulness/explainability;
+- statistical significance;
+- zero latency or a wall-clock training budget.
+
+## Main peer-review corrections
+
+1. **Measured evidence is primary.** The projection-led Tables 8–10/12 and
+   Figures 2–7 were removed from the results narrative.
+2. **Measured scope is consistent.** The manuscript now presents the complete
+   retained 5-dataset × 10-model table instead of describing five/ten while
+   displaying only three/seven.
+3. **GAT-CF status is consistent.** It is measured, but the central comparison
+   is only partly answered: clean tail/coverage are available, comparative
+   noise resilience and tuning traces are not.
+4. **GAT-CF collapse is not over-interpreted.** The text explicitly identifies
+   sparse-data collapse as potentially caused by tuning or implementation and
+   requests learning-rate sweeps and training curves.
+5. **No stale Amazon-Book gain remains.** Both 12.1% and projection-dependent
+   26.3% headline claims were removed.
+6. **Ablation and robustness claims were withdrawn.** The projected 62.2% G1
+   attribution and 5.4–5.7% degradation figures are named only to explain why
+   they cannot be treated as findings.
+7. **Theory is narrowed.** Proposition 2 is a per-edge, per-layer Channel-A
+   bound relative to a non-zero reference—not a full-model or NDCG robustness
+   theorem. The degree normalization uses `sqrt(d_u d_i)` consistently.
+8. **Characteristic-function boundaries are defined.** Every game defines
+   `v(empty)=0`; diversity is zero for coalitions smaller than two.
+9. **Axioms are scoped to credit.** Efficiency/additivity are properties of
+   exact Shapley credit, not sigmoid-transformed or distilled deployed weights.
+   Full propagation weights retain degree normalization.
+10. **Serving claims are narrowed.** Inference performs no Monte-Carlo Shapley
+    sampling, but residual attention latency is unmeasured.
+11. **Statistical limits are prominent.** The abstract, results, conclusion,
+    limitations and ethics statement all identify the evidence as single-run
+    and non-significant.
+12. **Unexecuted XAI is not claimed.** Deletion, insertion, stability and
+    explainer comparisons remain a pre-specified protocol.
+
+## Experiments still required
+
+These issues cannot be fixed honestly by editing prose or inventing values:
+
+1. at least five independent seeds or user-level bootstrap intervals;
+2. a documented and matched tuning budget, especially for GAT-CF;
+3. measured `w/o G1/G2/G3/CL/L_game` ablations;
+4. independently retrained 0/5/10/20% random-injection experiments;
+5. training time, inference latency, memory and distillation-gap measurements;
+6. deletion/insertion/stability attribution evaluation.
+
+Until those runs exist, the manuscript deliberately leaves RQ3–RQ5 open.
+
+## Building
+
+With a TeX distribution, from `paper/`:
 
 ```bash
 pdflatex coopgcn_cas
-bibtex   coopgcn_cas
+bibtex coopgcn_cas
 pdflatex coopgcn_cas
 pdflatex coopgcn_cas
 ```
 
-`elsarticle.cls` and `elsarticle-num.bst` ship with TeX Live
-(`texlive-publishers`) and are also downloadable from Elsevier.
-
-### About the preview PDF
-
-The sandbox this was prepared in has no reachable TeX mirror, so
-`CoopGCN_Array_preview.pdf` was produced by `build_preview_pdf.py`, which parses
-`coopgcn_cas.tex` directly and lays it out with ReportLab (display equations
-rendered via matplotlib mathtext). It **parses the `.tex` rather than
-duplicating its content**, so the preview cannot silently drift from the source.
-
-It is a faithful preview, not a substitute for LaTeX output: line breaking,
-hyphenation, float placement and math typesetting will differ from `pdflatex`.
-Regenerate it after editing the source with:
+Without TeX, install the Python dependencies (`matplotlib` and `reportlab`) and
+run:
 
 ```bash
 python build_preview_pdf.py
 ```
 
-## Structure
-
-The manuscript follows `specs/CoopGCN_Paper_Structure.md`,
-`specs/CoopGCN_Spec.md` and `specs/CoopGCN_Implementation_Spec.md`:
-
-| Spec section | Paper |
-|---|---|
-| Abstract (Background / Problem / Insight / Method / Results / Significance) | Abstract |
-| 1.1 The LightGCN paradigm and its core trade-off | §1.1 |
-| 1.2 Four structural failure modes | §1.2 |
-| 1.3 The game-theoretic perspective | §1.3 |
-| 1.4 Summary of contributions | §1.4 |
-| 2.1 GCNs in collaborative filtering | §2.1 |
-| 2.2 Hypergraph recommender systems | §2.2 |
-| 2.3 XAI and Shapley values | §2.3 |
-| 2.4 Popularity bias and robustness | §2.4 |
-| — (added) 12-weakness taxonomy W1–W12 | §2.5, Table 1 |
-| 3.1 Cooperative games and Shapley definition | §3.1, Eq. (2) |
-| 3.2 Four axioms in CF | §3.2, Table 4 |
-| 3.3 Proposition 1 (LightGCN/LightGCN++ recovery) | §3.3 + proof |
-| 3.4 Proposition 2 (robustness) | §3.4 + proof + Corollary 1 |
-| 4.1 Tri-channel overview | §4.1, Fig. 1 (TikZ) |
-| 4.2 G1 edge-level game | §4.2, Eqs. (4)–(6) |
-| 4.3 G2 hyperedge-level game | §4.3, Eqs. (7)–(9) |
-| 4.4 G3 data-level game | §4.4, Eq. (10) |
-| 4.5 Multi-task objective | §4.5, Eqs. (11)–(15) |
-| 4.6 Zero-overhead inference | §4.6, Eq. (16) |
-| 5.1 Restricted coalitions and MC sampling | §5.1, Algorithm 1 |
-| 5.2 Amortised complexity table | §5.2, Table 6 |
-| 6.1 Leakage audit and temporal protocol | §6.1 |
-| 6.2 Benchmark datasets | §6.2, Table 7 |
-| 6.3 Baseline competitors | §6.3 |
-| 6.4 Multi-dimensional metrics | §6.4 |
-| 6.5 Research questions RQ1–RQ5 | §6.5, answered §7.1–7.5 |
-| — (added) 10-row ablation matrix + victory condition | §6.6, Table 8 |
-| 7 Results and discussion | §7 |
-| 8 Conclusion, limitations and future work | §8.1–8.3 |
-
-## Journal compliance
-
-- Published two-column Elsevier layout (`5p`)
-- Numbered sections (1, 1.1, 1.1.1); abstract excluded from numbering
-- Highlights list (max 85 characters per bullet target)
-- Structured abstract, keywords, highlights-compatible contribution list
-- CRediT authorship statement, competing-interest and generative-AI declarations
-- Data availability statement with repository link
-- Editable text tables (no vertical rules, no cell shading), captions above
-- Figures as separate numbered files (`Figure_1.png` …) at 200–300 dpi
-- Equations displayed, numbered consecutively, variables italicised
-- `elsarticle-num` numbered reference style
-
-## Data provenance
-
-All reported values come from `main_results/` in this repository
-(`expected_results.csv`, `expected_ablation.csv`, `expected_noise.csv`).
-Provenance markers are carried through into the manuscript exactly as recorded
-in those files and are explained in §5.4 (*Provenance of reported numbers*):
-
-- `†` — CoopGCN projections at the target configuration (d=64, 1000 epochs, patience 50)
-- `*` — estimated from published margins on adjacent datasets
-- unmarked — values reported in the cited publications
-
-§8 (*Limitations*) states plainly that the results are single point estimates
-without seed variance, that the 6.7% ML-1M margin may fall within run-to-run
-variation, and that a learned-attention (GAT-CF) baseline is absent. See
-`main_results/ANALYSIS.md` for the full audit of the underlying result records.
-
-## Compliance with Elsevier Structured Peer Review prompts
-
-The manuscript is audited against every prompt in `PeerReviewGuidance.pdf`
-(Elsevier, *Structured Peer Review prompts for Original Research article
-type*, April 2026). Section numbers refer to `coopgcn_cas.tex`.
-
-| Prompt | Where it is addressed |
-|---|---|
-| **Abstract** — reflects all essential aspects incl. all major results *and limitations* | Structured abstract with `Background / Problem / Insight / Proposed method / Key results / **Limitations** / Significance`. The Limitations sentence names the single-run projections, the absence of CIs/significance tests, and the unresolved central ablation. |
-| **Introduction** — background and literature up to date; scientific rationale explained | §1.1–§1.3. Opens with the concrete empirical finding (six of seven baselines have TR@20 exactly 0.0000), then derives all three symptoms from one root cause; §1.3 argues why the axiomatic route differs from attention. References span 1953–2026, with 7 entries from 2023 onward. |
-| **Introduction** — (primary and secondary) objectives clearly stated *at the end* | §1.4, `\paragraph{Objectives}`, immediately before the roadmap: one primary objective and four numbered secondary objectives. |
-| **Methods** — theory, applicability, modelling described in enough detail to replicate | §3 (theory + two propositions with proofs), §4 (architecture, explicit characteristic functions, Algorithm 1), §5 (complexity), and **§6.4 Implementation and reproducibility settings** — $d$, layers, init, optimiser, LR, weight decay, batch size, epochs, patience, negatives, $\lambda$, $L$, $R$, $P$, $M$, $\eta$, and which values are validation-tuned. |
-| **Methods** — experimental design identified; population described | §6.1 leakage-audited temporal protocol; §6.2 dataset table with users/items/density; §6.3 baselines with equal tuning budget. Sample-size estimation and MCID are clinical-trial prompts and are not applicable to offline benchmark evaluation. |
-| **Methods** — statistical analyses, controls, sampling, reporting described | §6.4 (sampling, controls: shared codebase so backbone/sampler/evaluator are identical across conditions) and §6.8 `Statistical reporting`. |
-| **Results** — number of tables/figures appropriate to visualise findings | 12 tables and 7 figures, one per research question plus taxonomy/notation/axioms/complexity support; Table 8 carries the headline comparison, Figs. 2–7 the per-RQ evidence. |
-| **Results** — whether additional sub-analyses / CIs / effect sizes / sensitivity are needed | §6.8 `Statistical reporting` states that no significance claim is made anywhere, distinguishes the suggestive small-margin regime (6.7 %) from the load-bearing large-effect regime (4.2×–56.7×), and specifies the powered $n \ge 5$ seed study as future work §8.3. |
-| **Discussion** — interpretation supported by the data and design | §7.7 `Discussion: what the axioms buy` is scoped to the ablation and robustness evidence; Amazon-Book claims are deliberately framed against LightGCN/DyHuCoG only, because the SGL/SimGCL cells are flagged unreconcilable. |
-| **Discussion** — limitations of theory, methods *and argument* clearly emphasised | §8.2, six labelled limitations: unresolved central comparison; provenance and variance; ablation nesting; unmeasured efficiency; metric interpretation against small denominators; scope. |
-| **References** — most up-to-date and relevant | **41 entries**, 1953–2026 (14 added for the CAS revision: XSimGCL, SSL survey, PDA, DecRS, bias survey, two Abdollahpouri long-tail papers, T-CE, RGCF, GAT, GCN, two Castro Shapley-sampling papers, WRMF); every entry cited, no orphans (audited). |
-| **Overall** — novelty/importance; reproducibility; educational goals | §1.4 contributions; artefacts, seeds and result records released (Data availability); the taxonomy in §2.5 and the axiom treatment in §3.2 are written to be usable as teaching material. |
-| **Overall** — ethical / integrity concerns | **`Ethics and research integrity`** section before the AI declaration: public non-identifying datasets, no human subjects, explicit statement of which cells are projected vs estimated, unreconcilable inherited baselines reported rather than dropped, and a societal-impact note on credit scores as sensitive artefacts. |
-| **Title** (optional prompt) — accurate, sufficient, discoverable | Names the method, the mechanism (axiomatic credit assignment / cooperative game theory), the model family (GCN) and the two claimed properties (robust, preference-aware). |
-
-Audit command (all green): numeric integrity 142/142 literals traceable to
-`main_results/*.csv`, 0 missing citations, 0 uncited entries, 0 dangling
-refs, 0 unbalanced environments, 0 sparse pages, no colour packages.
-
-## Response to peer review (six reports, all Major Revision)
-
-### Issues fixed
-
-| # | Reviewer finding | Raised by | Fix |
-|---|---|---|---|
-| 1 | **"Projection" undefined**; headline results may not be measurements | R1, R3, R4, R5, R6 | §6.8 now defines it explicitly: *"A projection is not a measurement."* No `†` cell is the output of a completed run. |
-| 2 | **Measured results exist and contradict the projections** | (found while auditing R6's Issue #1) | New §7.6 + Table 11 report the measured 5-dataset evaluation: NDCG@20 is 1.5×–2.0× lower and CoopGCN ranks **last** on ML-1M. Disclosed in abstract, §6.8, §8.2 and conclusion. |
-| 3 | **Central Shapley-vs-attention ablation missing** | R1, R2, R3, R4, R5, R6 | **Resolved.** GAT-CF was measured under the same protocol; §7.6 reports it. Verdict is regime-dependent: attention wins on dense ML-1M, collapses on both sparse benchmarks. |
-| 4 | **Axioms do not transfer from φ to deployed weights** (dummy player ⇏ zero weight) | R2, R3, R5, R6 | New §3.5 "What the axioms do and do not transfer", separating estimation / transformation / distillation error. Table 4 row corrected. Title and framing changed to **Shapley-derived**. |
-| 5 | **Proposition 2 proof wrong** — σ(0)=0.5, so the weight does not contract to (1−λ) | R3, R5, R6 | Re-derived via the sigmoid's ¼-Lipschitz bound; restated as deviation from a *zero-credit reference weight*. Added the caveat that at λ=0.03 this cannot explain the observed robustness — G3 pruning is the likelier mechanism. |
-| 6 | **Corollary 1 asserted, not proven** | R3, R5, R6 | Now stated conditionally with an explicit proof and a stated failure case (targeted adversary). |
-| 7 | **Internal contradiction**: §7.1 used SimGCL for the Amazon-Book headline while §8.2 excluded those cells | R6 | §7.1 and the abstract now quote **LightGCN++ (+26.3%)**, the strongest *reconciled* baseline. |
-| 8 | **No GNN-explanation literature** (GNNExplainer, PGExplainer, SubgraphX, SAGE/FastSHAP) | R1, R2, R3, R4, R5, R6 | New §2.4 positions all of them; SubgraphX distinguished as *post-hoc/explanatory* vs CoopGCN *intrinsic/constitutive*; FastSHAP identified as the same amortisation trick. 7 refs added (**41 total**). |
-| 9 | **Explainability claimed but never evaluated** | R1, R2, R3, R4, R5, R6 | Claim demoted to "structural affordance, not a validated capability". New §8.4 pre-specifies the deletion / insertion / stability / comparison protocol and its victory condition. |
-| 10 | **"Adversarial" overclaims** a random-injection experiment | R3, R5, R6 | Retitled to random edge injection throughout; Zügner et al. cited for the stronger threat model. |
-| 11 | Algorithm 1 missing the G2 Shapley step; weight line inconsistent with Eq. (3) | R6 | Both fixed; the attention substitution is now explicit and cross-referenced to §3.5. |
-| 12 | Table 5 G3 complexity malformed | R3, R5, R6 | Corrected to `O(K·|B_val|)` evaluations. |
-| 13 | Table 10 row labels rendered as "90M L-1M" | R5 | Renderer bug — `\rotatebox` now stripped before cell parsing. |
-| 14 | Contribution 4 claims inference cost "identical to LightGCN" unmeasured | R2, R3, R4, R5, R6 | Reworded to an architectural claim; the unmeasured residual attention cost is stated inline and in §8.2. |
-
-### Issues rejected, with reasons
-
-| Reviewer finding | Why not actioned |
-|---|---|
-| "Remove **uncertainty** claims / add UQ evaluation" (R1, R4, R5) | The word *uncertainty* appears **zero times** in the manuscript, and no UQ claim is made. Nothing to remove. |
-| "No pseudocode is provided" (R1) | Algorithm 1 has been present since v3. |
-| "No limitations section / no ethics statement / no discussion" (R1) | §8.2, the Ethics and research integrity section, and §7.7 all exist. |
-| "Only two datasets (Yelp, Amazon)" (R1) | Three in the projected tables, five in the measured evaluation. |
-| "Dataset statistics not reported" (R1) | Table 6 reports users, items, density and hyperedge source. |
-| "SubgraphX is NeurIPS 2021" (R1, R4, R6) | It is **ICML** 2021; cited correctly. |
-
-R1 appears to describe a different or badly-extracted document — it refers to a two-module "CoopGCN rec / CoopGCN exp" architecture that does not exist in this manuscript. Its generic methodological points were still actioned where they applied.
+The preview renderer parses `coopgcn_cas.tex`; the LaTeX source remains the
+submission artifact.

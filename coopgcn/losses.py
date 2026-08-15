@@ -54,13 +54,16 @@ class CoopGCNLoss(nn.Module):
         u_emb = final_u[batch_users]
         pos_emb = final_i[batch_pos_items]
 
-        # 1. Ranking Loss (Shapley-weighted BPR over sampled negatives)
+        # 1. Ranking loss: generalized BCE over every sampled negative.
+        # Harder negatives receive larger softmax weights at temperature_neg.
         pos_scores = (u_emb * pos_emb).sum(dim=-1)  # (B,)
-        neg_emb = final_i[batch_neg_items[:, 0]]  # (B, d)
-        neg_scores = (u_emb * neg_emb).sum(dim=-1)  # (B,)
+        neg_emb = final_i[batch_neg_items]  # (B, num_negs, d)
+        neg_scores = (u_emb.unsqueeze(1) * neg_emb).sum(dim=-1)  # (B, num_negs)
+        neg_weights = torch.softmax(neg_scores / self.temperature_neg, dim=-1)
 
-        loss_bpr = -torch.log(torch.sigmoid(pos_scores - neg_scores) + 1e-8)
-        l_rank = torch.mean(sample_weights * loss_bpr)
+        pos_loss = -F.logsigmoid(pos_scores)
+        neg_loss = -(neg_weights * F.logsigmoid(-neg_scores)).sum(dim=-1)
+        l_rank = torch.mean(sample_weights * (pos_loss + neg_loss))
 
         # 2. Contrastive InfoNCE Loss (L_cl against SVD global view)
         l_cl = torch.tensor(0.0, device=device)
@@ -82,8 +85,10 @@ class CoopGCNLoss(nn.Module):
         if hasattr(model, "edge_shapley"):
             # Retrieve EMA Shapley targets from buffer (with stop-gradient)
             ema_targets = model.edge_shapley.get_ema_targets(edge_index).detach()
-            att_probs = torch.sigmoid(attention_logits)
-            l_game = F.mse_loss(att_probs, torch.sigmoid(ema_targets))
+            temperature = model.edge_shapley.temperature
+            att_probs = torch.sigmoid(attention_logits / temperature)
+            target_probs = torch.sigmoid(ema_targets / temperature)
+            l_game = F.mse_loss(att_probs, target_probs)
 
         # 4. L2 Regularization (L_reg)
         l_reg = 0.0

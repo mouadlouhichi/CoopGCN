@@ -8,7 +8,7 @@ This directory contains the official PyTorch package for **CoopGCN**, along with
 - `dataset.py`: Benchmark dataset loader (MovieLens-100K, MovieLens-1M, Gowalla), temporal splits, and Step 0.5 Leakage Audit (`audit_leakage()`).
 - `models.py`: `MCShapleyEdgeWeighting` ($\mathbf{G_1}$), `ShapleyHypergraphConv` ($\mathbf{G_2}$), `SVDContrastiveView`, `CoopGCN`, and baselines (`LightGCN`, `LightGCN++`, `GAT-CF`, `DyHuCoG`).
 - `shapley_data.py`: Truncated Monte-Carlo Data-Shapley valuation ($\mathbf{G_3}$) and bottom-5% noise pruning.
-- `losses.py`: Multi-task objective (`CoopGCNLoss`) with zero-overhead inference consistency regularization ($\mathcal{L}_{\text{game}}$).
+- `losses.py`: Multi-task objective (`CoopGCNLoss`) with Shapley-to-attention consistency regularization ($\mathcal{L}_{\text{game}}$); serving omits Shapley sampling but residual attention latency is unmeasured.
 - `evaluator.py`: Multi-dimensional metrics (`NDCG@20`, `Recall@20`, `TR@20`, `Coverage@20`, `Gini`, Noise Immunity).
 - `trainer.py`: Amortized training schedule optimized for universal hardware acceleration (`MPS`, `CUDA`, or `CPU`).
 - `visualization.py`: Generates publication academic figures (`./figures/`).
