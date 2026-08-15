@@ -181,6 +181,9 @@ def inline(s, refmap=None):
     s = re.sub(r"Eq\.~\\?\(?", "Eq.&nbsp;(", s) if False else s
 
     s = re.sub(r"\\url\{([^}]+)\}", r"\1", s)
+    # normalise subscripts inside \mathbf{...} first so tags cannot interleave
+    s = re.sub(r"\\mathbf\{([A-Za-z]+)_\{(\w+)\}\}", r"<b>\1<sub>\2</sub></b>", s)
+    s = re.sub(r"\\mathbf\{([A-Za-z]+)_(\w)\}", r"<b>\1<sub>\2</sub></b>", s)
     s = re.sub(r"\\emph\{([^}]*)\}", r"<i>\1</i>", s)
     s = re.sub(r"\\textit\{([^}]*)\}", r"<i>\1</i>", s)
     s = re.sub(r"\\textbf\{([^}]*)\}", r"<b>\1</b>", s)
@@ -431,9 +434,14 @@ def emit_figure_env(block, avail=None, wide=False):
     img = re.search(r"\\includegraphics\[[^\]]*\]\{([^}]+)\}", block)
     cap = re.search(r"\\caption\{(.*?)\}\s*\n\s*\\label", block, re.S)
     lab = re.search(r"\\label\{(fig:[^}]+)\}", block)
-    if not img:
+    if img:
+        path = os.path.join(HERE, img.group(1))
+    elif "\\begin{tikzpicture}" in block:
+        # TikZ figures are authoritative in the .tex; the preview build has no
+        # LaTeX, so fall back to the equivalent monochrome PNG if one exists.
+        path = os.path.join(HERE, "figures", "Figure_1.png")
+    else:
         return
-    path = os.path.join(HERE, img.group(1))
     if not os.path.exists(path):
         return
     from PIL import Image as PILImage
