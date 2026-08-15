@@ -42,9 +42,12 @@ class CoopGCNTrainer:
         shapley_refresh_period=10,
         data_shapley_period=20,
         use_g3_weights=True,
+        g3_tail_multiplier=1.02,
+        g3_head_multiplier=0.99,
+        seed=42,
     ):
-        torch.manual_seed(42)
-        np.random.seed(42)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
         if device is None:
             if torch.backends.mps.is_available():
                 self.device = torch.device("mps")
@@ -77,7 +80,10 @@ class CoopGCNTrainer:
 
         # Initialize the legacy-named G3 score-and-tail proxy valuator
         self.data_valuator = TMCShapleyDataValuator(
-            num_train_edges=len(self.dataset.train_edges), prune_cutoff_percentile=5.0
+            num_train_edges=len(self.dataset.train_edges),
+            prune_cutoff_percentile=5.0,
+            tail_multiplier=g3_tail_multiplier,
+            head_multiplier=g3_head_multiplier,
         )
         self.sample_weights = self.data_valuator.get_sample_weights_tensor(
             device=self.device

@@ -23,7 +23,7 @@ from coopgcn.models import (
 )
 from coopgcn.losses import CoopGCNLoss
 from coopgcn.shapley_data import TMCShapleyDataValuator
-from coopgcn.evaluator import compute_all_metrics
+from coopgcn.evaluator import compute_all_metrics, candidate_exclusions
 
 
 def test_symmetric_edge_index_is_not_double_counted():
@@ -125,6 +125,19 @@ def test_tmc_shapley_data_valuator():
     assert not torch.isnan(weights).any()
 
 
+def test_candidate_cross_filtering():
+    """Other held-out positives are masked, but overlapping current GT is not."""
+    class SplitStub:
+        user_train_dict = {0: [1]}
+        user_val_dict = {0: [2, 3]}
+        user_test_dict = {0: [3, 4]}
+
+    ds = SplitStub()
+    assert candidate_exclusions(ds, ds.user_test_dict, 0, 10) == {1, 2}
+    assert candidate_exclusions(ds, ds.user_val_dict, 0, 10) == {1, 4}
+    assert candidate_exclusions(ds, ds.user_test_dict, 0, 10, False) == {1}
+
+
 def test_compute_all_metrics():
     ds = _create_dummy_test_dataset(num_users=20, num_items=40, num_interactions=100)
     model = LightGCN(ds.num_users, ds.num_items, embed_dim=16, num_layers=1)
@@ -144,5 +157,6 @@ if __name__ == "__main__":
     test_all_baselines_forward()
     test_coopgcn_loss_calculation()
     test_tmc_shapley_data_valuator()
+    test_candidate_cross_filtering()
     test_compute_all_metrics()
     print("\n🏆 ALL COOPGCN UNIT TESTS PASSED SUCCESSFULLY!")

@@ -1,18 +1,21 @@
 \begin{table*}[t]
 \centering
 \caption{Confirmatory record: component\_ablation. Pending rows are not results.}
-\begin{tabular}{llllllllllllllll}
+\begin{tabular}{lllllllllllllllllllll}
 \toprule
-\textbf{dataset} & \textbf{variant} & \textbf{seed} & \textbf{norm\_scale\_trainable} & \textbf{lambda\_edge} & \textbf{hypergraph\_mix} & \textbf{use\_g3\_weights} & \textbf{lambda\_cl} & \textbf{lambda\_game} & \textbf{tail\_bonus} & \textbf{ndcg\_20} & \textbf{tr\_20} & \textbf{coverage\_20} & \textbf{distinct\_items} & \textbf{status} & \textbf{notes} \\
+\textbf{dataset} & \textbf{variant} & \textbf{seed} & \textbf{norm\_scale\_trainable} & \textbf{lambda\_edge} & \textbf{hypergraph\_mix} & \textbf{use\_g3\_weights} & \textbf{lambda\_cl} & \textbf{lambda\_game} & \textbf{g1\_tail\_bonus} & \textbf{g2\_tail\_coefficient} & \textbf{g3\_tail\_multiplier} & \textbf{g3\_head\_multiplier} & \textbf{coalition\_cap} & \textbf{cap\_sampling} & \textbf{ndcg\_20} & \textbf{tr\_20} & \textbf{coverage\_20} & \textbf{distinct\_items} & \textbf{status} & \textbf{notes} \\
 \midrule
-ML-1M & full & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
-ML-1M & frozen\_norm & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
-ML-1M & w/o\_G1 & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
-ML-1M & w/o\_G2 & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
-ML-1M & w/o\_G3 & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
-ML-1M & w/o\_contrastive & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
-ML-1M & w/o\_game\_loss & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
-ML-1M & w/o\_tail\_bonus & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & full & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & frozen\_norm & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & w/o\_G1 & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & w/o\_G2 & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & w/o\_G3 & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & w/o\_contrastive & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & w/o\_game\_loss & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & zero\_G1\_tail & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & zero\_G2\_tail & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & neutral\_G3\_tail & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
+ML-1M & random\_cap & 42 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending &  \\
 \bottomrule
 \end{tabular}
 \end{table*}

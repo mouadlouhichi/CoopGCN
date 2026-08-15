@@ -180,3 +180,10 @@ If you find this repository, specification, or codebase useful in your research,
 
 ## License
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+### Confirmatory evaluator update
+
+The corrected evaluator cross-filters validation-only positives during test and
+test-only positives during validation while retaining overlapping current
+positives. Tail coefficients and randomized neighbour-cap sweeps are exposed for
+confirmatory ablations. No post-fix benchmark result is included yet.

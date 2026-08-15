@@ -8,6 +8,7 @@
 
 \usepackage[numbers]{natbib}
 \usepackage{amsmath,amssymb}
+\usepackage{graphicx}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{tikz}
@@ -654,6 +655,15 @@ across tasks. \\
 \end{tabular}
 \end{table}
 
+Negative contributions are theoretically plausible rather than automatically
+noise: under a coalition utility, an interaction can reduce consistency through
+preference drift, accidental clicks, adversarial contamination, or redundancy
+with a more informative neighbour. Down-modulation is therefore appropriate
+only when its negative marginal contribution is stable across sampled
+coalitions. The retained centered-alignment proxy does not establish this
+stability; faithfulness and deletion tests remain mandatory before interpreting
+negative proxy values as harmful edges.
+
 \subsection{Proposition 1: recovery of LightGCN and LightGCN++}
 \label{sec:prop1}
 
@@ -1167,8 +1177,9 @@ within-split duplicate pairs are otherwise retained.
 All graph statistics and tail labels use training edges only. An item is tail
 when its training degree is at or below the 80th percentile of item degrees.
 At evaluation, users with at least one ground-truth item are macro-averaged.
-Each user is ranked against every catalogue item except their training-seen
-items; validation and test positives are not cross-filtered. PyTorch
+Each user is ranked against every catalogue item except training-seen items
+and positives exclusive to the opposite held-out split. A positive present in
+both held-out splits remains eligible when it is current ground truth. PyTorch
 \texttt{topk} supplies the ranking and no additional tie breaker is imposed.
 TR@20 averages only over users with at least one tail ground-truth item.
 Coverage@20 is the number of distinct recommended items divided by the full
@@ -1294,7 +1305,11 @@ estimate: no standard deviation, confidence interval or significance test is
 available, and we make no claim of statistical significance or definitive
 superiority. Complete tuning traces, including a GAT-CF learning-rate sweep,
 are also unavailable. The results are consequently preliminary evidence that
-motivates a multi-seed confirmatory study.
+motivates a multi-seed confirmatory study. Numerical settings and acceptance
+thresholds for that study are provided in
+\texttt{experiments/projected/expected\_validation\_targets.csv}. They are
+explicitly design targets---not projected metric outcomes and not measured
+evidence.
 
 %==========================================================================
 \section{Results and discussion}
@@ -1308,13 +1323,33 @@ He et al.'s published same-dataset references \citep{he2020lightgcn}. Gowalla
 is 0.0348 versus 0.1554, Yelp2018 0.0145 versus 0.0530, and Amazon-Book 0.0002
 versus 0.0315. Protocol differences preclude expecting exact equality, but
 ratios of 0.224, 0.274 and 0.006 fail the pre-specified factor-1.5 calibration
-threshold in \texttt{experiments/expected/baseline\_calibration.csv}. Code
-audit found a concrete harness fault: \texttt{edge\_index} already contains
-both directions, but every graph model performed a second reverse
-\texttt{index\_add}, double-counting every message. The corrected helper now
-aggregates each directed entry once, but no corrected benchmark has yet been
-run. AQ1 therefore fails: the retained sparse baseline cells are
-uncalibrated and cannot support comparative claims.
+threshold in \texttt{experiments/expected/baseline\_calibration.csv}. This is a
+generous engineering screen, not an equivalence or significance criterion: a
+value within $[1/1.5,1.5]$ merely rules out an order-level implementation
+mismatch before cross-model interpretation.
+
+Code audit found a concrete harness fault. The dataset supplies the symmetric
+edge list $E_s=\{u\!\to\!i,i\!\to\!u\}$, but the former propagation loop
+accumulated each listed direction and then explicitly accumulated its reverse:
+\begin{equation}
+ x'_v=\sum_{(v,w)\in E_s}a_{vw}x_w
+      +\sum_{(w,v)\in E_s}a_{wv}x_w
+      =2\sum_{(v,w)\in E_s}a_{vw}x_w .
+ \label{eq:double-count-bug}
+\end{equation}
+The executable difference is:
+\begin{verbatim}
+# former (wrong for an already symmetric edge_index)
+out.index_add_(0, src, w * x[dst])
+out.index_add_(0, dst, w * x[src])
+# corrected
+out.index_add_(0, edge_index[0], w * x[edge_index[1]])
+\end{verbatim}
+The corrected \texttt{aggregate\_symmetric\_edges} therefore contains only the
+first accumulation; a two-node regression test checks that unit messages
+remain one rather than two. No corrected benchmark has yet been run. AQ1
+therefore fails: the retained sparse baseline cells are uncalibrated and cannot
+support comparative claims.
 
 Table~\ref{tab:measured} is preserved only as an audit record showing what
 triggered this conclusion. It is not a leaderboard. No cell is bolded and no
@@ -1410,11 +1445,23 @@ then mixed at 0.01. W5 is therefore only nominally and very partially addressed
 on these datasets. The values are machine-readable in
 \texttt{experiments/expected/hyperedge\_footprint.csv}.
 
+\noindent\fbox{\begin{minipage}{0.94\columnwidth}
+\textbf{G2 sanity check to run before benchmarking.} Construct two equal-size
+synthetic hyperedges with identical base affinity and tail shares 0 and 1.
+With the retained coefficient 0.5, verify the latter has the larger $\beta_h$;
+with coefficient 0, verify equality. Then backpropagate one ranking step and
+report the gradient norm reaching member embeddings. This separates a live G2
+path from a merely nominal 1\% mixture. This check is specified, not yet run.
+\end{minipage}}
+
 \subsection{Neighbour-cap audit}
 \label{sec:cap-audit}
 
-Only the first $L=32$ neighbours in training-adjacency order can receive a
-non-zero $q_{ui}$. All remaining edges receive a zero target in
+In the invalidated retained runs, only the first $L=32$ neighbours in exact
+upstream training-adjacency order could receive a non-zero $q_{ui}$. The
+corrected harness additionally exposes seeded uniform random cap sampling and
+$L\in\{16,32,64,128\}$; these controls are executable but not yet measured.
+All remaining edges receive a zero target in
 $\mathcal L_{game}$, so they are supervised toward neutral modulation rather
 than left wholly unsupervised. Table~\ref{tab:cap} shows that non-zero targets
 cover at most 27.6\% of ML-1M edges and only 56--69\% of sparse-data edges.
@@ -1442,6 +1489,16 @@ Amazon-Book & 45.2 & 56.4\% & exact\\
 \end{tabular}
 \end{table}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/Figure_audit_controls.png}
+\caption{Python-generated code-level diagnostics. Left: configured nominal
+magnitudes (not commensurate causal effects). Right: one-refresh target coverage
+at $L=32$; orange MovieLens bars are upper bounds and green sparse-data bars are
+exact. This figure contains no corrected model outcome.}
+\label{fig:audit-controls}
+\end{figure*}
+
 \subsection{Tail-objective circularity}
 \label{sec:tail-audit}
 
@@ -1450,8 +1507,10 @@ tail-share coefficient in G2, and multipliers 1.02/0.99 in G3. Broader exposure
 is therefore partly an objective consequence, not evidence that cooperative
 game structure discovered tail value. G1 then z-standardises within each
 capped neighbourhood, so the bonus nearly cancels when most capped neighbours
-are tail and is strongest when tail items are rare. The distribution of capped
-neighbourhood tail fractions and the zero-tail-bonus ablation are pending in
+are tail and is strongest when tail items are rare. The corrected implementation independently exposes G1's additive bonus, G2's
+tail-share coefficient, and G3's tail/head multipliers, including neutral
+settings $0$, $0$, and $1/1$. The distribution of capped neighbourhood tail
+fractions and all three zero-tail controls remain pending in
 \texttt{user\_degree\_diagnostics.csv} and
 \texttt{component\_ablation.csv}; no direction or effect size is claimed.
 
@@ -1459,12 +1518,15 @@ neighbourhood tail fractions and the zero-tail-bonus ablation are pending in
 \label{sec:protocol-audit}
 
 For the three pinned datasets, validation and test are a 33/67 division of the
-upstream test interaction stream and are not cross-filtered. A validation-only
-positive can therefore remain in a test candidate set labelled non-relevant,
-and vice versa, introducing downward false-negative bias when such an item is
-ranked highly. All configurations call the same released evaluator and
-training-seen mask, but checkpoint-specific training settings and tuning traces
-are not sufficiently preserved to establish parity.
+upstream test interaction stream. The invalidated retained evaluator masked
+training items only, so an opposite-split positive could be scored as a
+non-relevant candidate. The corrected evaluator now cross-filters
+validation-only positives during test and test-only positives during
+validation, while explicitly retaining any item that is also ground truth in
+the split being evaluated. A regression test covers the overlapping-positive
+case. No post-fix metrics are yet available. All configurations call the same
+evaluator, but checkpoint-specific training settings and tuning traces are not
+sufficiently preserved to establish historical parity.
 
 Global MovieLens splitting can produce evaluation users with little or no
 training history. Counts for zero and fewer-than-five training interactions are
@@ -1545,8 +1607,9 @@ possible.
 adaptation, and several sparse-data configurations perform near the metric
 floor. No mechanism-level attention conclusion follows.
 
-\textbf{Evaluation scope.} Candidate ranking excludes training-seen items but
-uses one cut-off and one split. Score ties have no explicit secondary rule.
+\textbf{Evaluation scope.} Candidate ranking excludes training-seen and
+opposite-held-out positives but uses one cut-off and one split. Score ties have
+no explicit secondary rule.
 Coverage is provider/catalogue exposure, not user utility; increasing it may
 reduce relevance for some users. Only rounded aggregate coverage survives, not
 per-user exposure distributions.

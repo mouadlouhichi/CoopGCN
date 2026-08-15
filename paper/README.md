@@ -95,3 +95,11 @@ pdflatex coopgcn_cas
 
 Without TeX, install `matplotlib` and `reportlab`, then run
 `python build_preview_pdf.py`.
+
+## R6 protocol controls
+
+The evaluator now cross-filters opposite-held-out positives without masking
+current ground truth. G1/G2/G3 tail settings are independently neutralizable,
+and the cap control supports seeded random sampling at L=16/32/64/128. Expected
+values in `experiments/projected/` are design thresholds only, never results.
+Corrected empirical runs remain pending.

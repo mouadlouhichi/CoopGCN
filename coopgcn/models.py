@@ -41,6 +41,7 @@ class MCShapleyEdgeWeighting(nn.Module):
         num_permutations=25,
         temperature=0.5,
         tail_bonus=0.05,
+        coalition_sampling="input",
     ):
         super().__init__()
         self.num_users = num_users
@@ -50,6 +51,9 @@ class MCShapleyEdgeWeighting(nn.Module):
         self.num_permutations = num_permutations
         self.temperature = temperature
         self.tail_bonus = tail_bonus
+        if coalition_sampling not in {"input", "random"}:
+            raise ValueError("coalition_sampling must be 'input' or 'random'")
+        self.coalition_sampling = coalition_sampling
         self.ema_decay = 0.85
 
         # EMA buffer to store historical Shapley credits per user's top neighbors
@@ -74,7 +78,13 @@ class MCShapleyEdgeWeighting(nn.Module):
             if len(neighbors) == 0:
                 continue
             deg = min(len(neighbors), self.max_coalition_size)
-            neigh_subset = neighbors[:deg]
+            if self.coalition_sampling == "random" and len(neighbors) > deg:
+                # Uses PyTorch's seeded RNG, so refreshes are stochastic but fully
+                # reproducible under the run seed. Input order is the legacy control.
+                chosen = torch.randperm(len(neighbors), device=device)[:deg].cpu().tolist()
+                neigh_subset = [neighbors[j] for j in chosen]
+            else:
+                neigh_subset = neighbors[:deg]
             neigh_tensor = torch.tensor(neigh_subset, device=device, dtype=torch.long)
 
             u_target = user_embeds[u_id]  # shape: (d,)
@@ -152,16 +162,17 @@ class ShapleyHypergraphConv(nn.Module):
     Shapley values.
     """
 
-    def __init__(self, num_hyperedges, temperature=0.5):
+    def __init__(self, num_hyperedges, temperature=0.5, tail_share_coefficient=0.5):
         super().__init__()
         self.num_hyperedges = num_hyperedges
         self.temperature = temperature
+        self.tail_share_coefficient = tail_share_coefficient
         self.register_buffer("beta_h", torch.ones(num_hyperedges, dtype=torch.float32))
 
     @torch.no_grad()
     def compute_group_shapley(self, hyperedges, item_embeds, tail_mask):
         """
-        Compute beta_h from mean off-diagonal cosine affinity plus 0.5 tail share.
+        Compute beta_h from mean affinity plus a configurable tail-share term.
 
         This is a deterministic group-credit proxy, not a permutation estimator.
         """
@@ -183,7 +194,7 @@ class ShapleyHypergraphConv(nn.Module):
                 if tail_mask is not None
                 else torch.tensor(0.0)
             )
-            val_h = avg_affinity + 0.5 * tail_prop
+            val_h = avg_affinity + self.tail_share_coefficient * tail_prop
             self.beta_h[h_id] = torch.sigmoid(val_h / self.temperature)
 
     def forward(self, x, hyperedges, num_users, num_items):
@@ -283,6 +294,8 @@ class CoopGCN(nn.Module):
         num_hyperedges=250,
         max_coalition_size=32,
         edge_tail_bonus=0.05,
+        hyperedge_tail_coefficient=0.5,
+        coalition_sampling="input",
         hypergraph_mix=0.01,
         norm_scale_trainable=True,
     ):
@@ -319,8 +332,12 @@ class CoopGCN(nn.Module):
             embed_dim,
             max_coalition_size=max_coalition_size,
             tail_bonus=edge_tail_bonus,
+            coalition_sampling=coalition_sampling,
         )
-        self.hyper_conv = ShapleyHypergraphConv(num_hyperedges=num_hyperedges)
+        self.hyper_conv = ShapleyHypergraphConv(
+            num_hyperedges=num_hyperedges,
+            tail_share_coefficient=hyperedge_tail_coefficient,
+        )
         self.svd_view = SVDContrastiveView(num_users, num_items, rank=16)
 
     def forward(self, edge_index, topo_norm, hyperedges=None):

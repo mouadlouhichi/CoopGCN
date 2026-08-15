@@ -59,6 +59,23 @@ class Evaluator:
         return (np.sum((2 * index - n - 1) * counts)) / (n * np.sum(counts) + 1e-8)
 
 
+def candidate_exclusions(dataset, eval_dict, user_id, num_items, cross_filter_heldout=True):
+    """Build the candidate mask without hiding current-split positives."""
+    current_gt = {i for i in eval_dict.get(user_id, []) if i < num_items}
+    excluded = {i for i in dataset.user_train_dict.get(user_id, []) if i < num_items}
+    if cross_filter_heldout and eval_dict is dataset.user_test_dict:
+        other_heldout = dataset.user_val_dict
+    elif cross_filter_heldout and eval_dict is dataset.user_val_dict:
+        other_heldout = dataset.user_test_dict
+    else:
+        other_heldout = {}
+    excluded.update(
+        i for i in other_heldout.get(user_id, [])
+        if i < num_items and i not in current_gt
+    )
+    return excluded
+
+
 def compute_all_metrics(
     model,
     dataset,
@@ -68,11 +85,14 @@ def compute_all_metrics(
     batch_size=512,
     edge_index=None,
     topo_norm=None,
+    cross_filter_heldout=True,
 ):
     """
-    Evaluates model on eval_dict (user_id -> list of positive item_ids).
-    Returns dict containing NDCG@K, Recall@K, TR@K, Coverage@K, and Gini Index.
-    100% bounds-safe on Apple Metal MPS.
+    Evaluate on unseen candidates. Training items are always excluded. When
+    ``cross_filter_heldout`` is true, validation-only positives are excluded
+    during test scoring and test-only positives during validation scoring;
+    items that are also ground truth for the current evaluation remain eligible.
+    Returns NDCG, Recall, Tail Recall, Coverage and Gini.
     """
     model.eval()
     if edge_index is None or topo_norm is None:
@@ -102,9 +122,11 @@ def compute_all_metrics(
         scores = torch.matmul(batch_u_emb, final_i.T)  # shape: (B, num_items)
 
         for b_idx, u_id in enumerate(batch_u_ids):
-            train_items = [i for i in dataset.user_train_dict.get(u_id, []) if i < num_items]
-            if len(train_items) > 0:
-                scores[b_idx, train_items] = -float("inf")
+            excluded = candidate_exclusions(
+                dataset, eval_dict, u_id, num_items, cross_filter_heldout
+            )
+            if excluded:
+                scores[b_idx, list(excluded)] = -float("inf")
 
         top_k_items = torch.topk(scores, k=k, dim=-1).indices.cpu().numpy()
 

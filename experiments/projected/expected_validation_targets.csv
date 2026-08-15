@@ -1,0 +1,16 @@
+check,expected_value,unit,status,interpretation
+lightgcn_calibration_ratio,0.667,retained_over_published,design_threshold,within_factor_1.5
+minimum_training_seeds,3,count,design_threshold,minimum_preliminary_variance
+preferred_training_seeds,5,count,design_target,journal_ready_variance
+frozen_norm_scale,1.0,scalar,ablation_setting,test_norm_confound
+zero_g1_tail_bonus,0.0,coefficient,ablation_setting,test_tail_circularity
+zero_g2_tail_coefficient,0.0,coefficient,ablation_setting,test_tail_circularity
+neutral_g3_tail_multiplier,1.0,multiplier,ablation_setting,test_tail_circularity
+neighbor_cap_low,16,neighbors,sweep_setting,cap_sensitivity
+neighbor_cap_retained,32,neighbors,sweep_setting,retained_reference
+neighbor_cap_high,64,neighbors,sweep_setting,cap_sensitivity
+neighbor_cap_max,128,neighbors,sweep_setting,cap_sensitivity
+permutation_budget,50,permutations,validation_setting,proxy_vs_shapley
+random_noise_low,0.05,fraction,optional_setting,corruption_study
+random_noise_mid,0.10,fraction,optional_setting,corruption_study
+random_noise_high,0.20,fraction,optional_setting,corruption_study

@@ -198,13 +198,30 @@ def run_benchmark(
         )
 
     ablation_specs = {
-        "CoopGCN (frozen norm)": (make_coop(norm_scale_trainable=False), CoopGCNLoss(), True),
-        "CoopGCN (w/o G1 Edge Proxy)": (make_coop(lambda_param=0.0), CoopGCNLoss(), True),
-        "CoopGCN (w/o G2 Hyperedge Proxy)": (make_coop(hypergraph_mix=0.0), CoopGCNLoss(), True),
-        "CoopGCN (w/o G3 weights)": (make_coop(), CoopGCNLoss(), False),
-        "CoopGCN (w/o contrastive)": (make_coop(), CoopGCNLoss(lambda_cl=0.0), True),
-        "CoopGCN (w/o L_game Consistency)": (make_coop(), CoopGCNLoss(lambda_game=0.0), True),
-        "CoopGCN (w/o tail bonus)": (make_coop(edge_tail_bonus=0.0), CoopGCNLoss(), True),
+        "CoopGCN (frozen norm)": (make_coop(norm_scale_trainable=False), CoopGCNLoss(), True, {}),
+        "CoopGCN (w/o G1 Edge Proxy)": (make_coop(lambda_param=0.0), CoopGCNLoss(), True, {}),
+        "CoopGCN (w/o G2 Hyperedge Proxy)": (make_coop(hypergraph_mix=0.0), CoopGCNLoss(), True, {}),
+        "CoopGCN (w/o G3 weights)": (make_coop(), CoopGCNLoss(), False, {}),
+        "CoopGCN (w/o contrastive)": (make_coop(), CoopGCNLoss(lambda_cl=0.0), True, {}),
+        "CoopGCN (w/o L_game Consistency)": (make_coop(), CoopGCNLoss(lambda_game=0.0), True, {}),
+        "CoopGCN (zero G1 tail)": (make_coop(edge_tail_bonus=0.0), CoopGCNLoss(), True, {}),
+        "CoopGCN (zero G2 tail)": (make_coop(hyperedge_tail_coefficient=0.0), CoopGCNLoss(), True, {}),
+        "CoopGCN (neutral G3 tail)": (
+            make_coop(), CoopGCNLoss(), True,
+            {"g3_tail_multiplier": 1.0, "g3_head_multiplier": 1.0},
+        ),
+        "CoopGCN (cap 16 random)": (
+            make_coop(max_coalition_size=16, coalition_sampling="random"), CoopGCNLoss(), True, {}
+        ),
+        "CoopGCN (cap 32 random)": (
+            make_coop(max_coalition_size=32, coalition_sampling="random"), CoopGCNLoss(), True, {}
+        ),
+        "CoopGCN (cap 64 random)": (
+            make_coop(max_coalition_size=64, coalition_sampling="random"), CoopGCNLoss(), True, {}
+        ),
+        "CoopGCN (cap 128 random)": (
+            make_coop(max_coalition_size=128, coalition_sampling="random"), CoopGCNLoss(), True, {}
+        ),
     }
     component_ablation = {
         "1. LightGCN (Floor)": primary_results_dict["LightGCN"],
@@ -215,7 +232,7 @@ def run_benchmark(
         "6. HPCF": primary_results_dict["HPCF"],
         "7. DyHuCoG": primary_results_dict["DyHuCoG"],
     }
-    for name, (ab_model, loss_fn, use_g3) in ablation_specs.items():
+    for name, (ab_model, loss_fn, use_g3, trainer_kwargs) in ablation_specs.items():
         print(f"---> Training ablation variant: {name} ...")
         trainer = CoopGCNTrainer(
             model=ab_model,
@@ -226,6 +243,7 @@ def run_benchmark(
             batch_size=2048,
             device=device,
             use_g3_weights=use_g3,
+            **trainer_kwargs,
         )
         trainer.train(
             epochs=epochs,

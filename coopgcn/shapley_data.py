@@ -19,10 +19,19 @@ class TMCShapleyDataValuator:
     retrain coalitions or evaluate validation NDCG per TMC permutation.
     """
 
-    def __init__(self, num_train_edges, prune_cutoff_percentile=5.0, kappa=0.01):
+    def __init__(
+        self,
+        num_train_edges,
+        prune_cutoff_percentile=5.0,
+        kappa=0.01,
+        tail_multiplier=1.02,
+        head_multiplier=0.99,
+    ):
         self.num_train_edges = num_train_edges
         self.prune_cutoff_percentile = prune_cutoff_percentile
         self.kappa = kappa
+        self.tail_multiplier = tail_multiplier
+        self.head_multiplier = head_multiplier
         self.sample_credits = np.ones(num_train_edges, dtype=np.float32)
         self.sample_weights = np.ones(num_train_edges, dtype=np.float32)
         self.pruned_mask = np.zeros(num_train_edges, dtype=bool)
@@ -51,7 +60,11 @@ class TMCShapleyDataValuator:
 
             # Vectorized lookup of tail bonus
             tail_mask_dev = dataset.tail_item_mask.to(device)
-            tail_bonus = torch.where(tail_mask_dev[i_indices], 1.02, 0.99)
+            tail_bonus = torch.where(
+                tail_mask_dev[i_indices],
+                torch.as_tensor(self.tail_multiplier, device=device),
+                torch.as_tensor(self.head_multiplier, device=device),
+            )
 
             credits = (torch.sigmoid(scores) * tail_bonus).cpu().numpy()
 
