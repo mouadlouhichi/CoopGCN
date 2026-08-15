@@ -1,0 +1,15 @@
+\begin{table*}[t]
+\centering
+\caption{Confirmatory record: user\_degree\_diagnostics. Pending rows are not results.}
+\begin{tabular}{lllllllllllll}
+\toprule
+\textbf{dataset} & \textbf{split} & \textbf{users\_total} & \textbf{users\_with\_ground\_truth} & \textbf{users\_zero\_train} & \textbf{users\_train\_lt5} & \textbf{mean\_train\_degree\_for\_eval\_users} & \textbf{median\_train\_degree\_for\_eval\_users} & \textbf{credited\_fraction\_L32} & \textbf{tail\_fraction\_mean} & \textbf{tail\_fraction\_std} & \textbf{status} & \textbf{notes} \\
+\midrule
+ML-100K & test & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending & raw\_loader\_output\_required \\
+ML-1M & test & -- & -- & -- & -- & -- & -- & -- & -- & -- & pending & raw\_loader\_output\_required \\
+Gowalla & test & 29858 & 22913 & 0 & 0 & 23.454 & 15 & 0.688 &  &  & complete & credited\_fraction\_exact\_over\_all\_train\_edges \\
+Yelp2018 & test & 31668 & 23179 & 0 & 0 & 35.617 & 24 & 0.644 &  &  & complete & credited\_fraction\_exact\_over\_all\_train\_edges \\
+Amazon-Book & test & 52643 & 38912 & 0 & 0 & 40.936 & 25 & 0.564 &  &  & complete & credited\_fraction\_exact\_over\_all\_train\_edges \\
+\bottomrule
+\end{tabular}
+\end{table*}

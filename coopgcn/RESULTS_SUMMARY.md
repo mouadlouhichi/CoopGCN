@@ -8,9 +8,10 @@ training edges only.
 
 ## Evidence status
 
-The table below is the retained **single-run measured** record for direct graph
-comparators. Values are **NDCG@20 / Tail Recall@20 / Coverage@20 (%)**.
-No seed variance, confidence intervals or significance tests are available.
+The table below is an **uncalibrated single-run audit record**, not a
+leaderboard. Retained LightGCN NDCG is 4–150× below published references on the
+three sparse datasets. Values are **NDCG@20 / Tail Recall@20 / Coverage@20
+(%)** and must not support comparative claims until calibration reruns pass.
 
 | Model | ML-100K | ML-1M | Gowalla | Yelp2018 | Amazon-Book |
 |---|---:|---:|---:|---:|---:|
@@ -22,16 +23,13 @@ No seed variance, confidence intervals or significance tests are available.
 | HCCF | 0.1723 / 0.0019 / 21.2 | 0.2070 / 0.0000 / 8.23 | 0.0291 / 0.0000 / 0.35 | 0.0113 / 0.0000 / 0.25 | 0.0002 / 0.0000 / 0.05 |
 | DyHuCoG | 0.1718 / 0.0026 / 20.5 | 0.2114 / 0.0000 / 9.42 | 0.0338 / 0.0000 / 0.32 | 0.0144 / 0.0000 / 0.35 | 0.0002 / 0.0000 / 0.05 |
 
-## Supported preliminary observations
+## Audit findings
 
-- CoopGCN has the highest NDCG point estimate among direct
-  hypergraph/cooperative peers on four of five datasets.
-- It has the highest TR@20 and Coverage@20 among those peers on all five.
-- It has the lowest ML-1M NDCG among the seven graph models shown.
-- It is close to LightGCN++ on sparse datasets and effectively tied on Gowalla;
-  these margins require multi-seed confirmation.
-- The retained GAT-CF configuration collapses on sparse data, but missing
-  tuning traces prevent concluding that attention generally fails.
+- Sparse LightGCN calibration fails against same-dataset literature references.
+- CoopGCN and LightGCN++ share a learnable norm scale and similar exposure profiles.
+- Cooperative proxy ranges are small relative to reported exposure differences.
+- The first-32-neighbour cap leaves most ML-1M edges at a neutral target.
+- No retained row establishes model superiority, component causality, robustness, explanation, or efficiency.
 
 ## Unsupported claims
 

@@ -1,0 +1,4 @@
+dataset,seed,method,k,users,mean_score_drop,mean_rank_drop,deletion_auc,insertion_auc,rank_stability,status,notes
+ML-100K,42,proxy,1,100,,,,,,pending,
+ML-100K,42,random,1,100,,,,,,pending,
+ML-100K,42,degree,1,100,,,,,,pending,

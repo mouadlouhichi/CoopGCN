@@ -1,0 +1,6 @@
+dataset,split,users_total,users_with_ground_truth,users_zero_train,users_train_lt5,mean_train_degree_for_eval_users,median_train_degree_for_eval_users,credited_fraction_L32,tail_fraction_mean,tail_fraction_std,status,notes
+ML-100K,test,943,,,,,,0.431_upper_bound,,,pending,raw_loader_output_required
+ML-1M,test,6040,,,,,,0.276_upper_bound,,,pending,raw_loader_output_required
+Gowalla,test,29858,22913,0,0,23.454,15,0.688,,,complete,credited_fraction_exact_over_all_train_edges
+Yelp2018,test,31668,23179,0,0,35.617,24,0.644,,,complete,credited_fraction_exact_over_all_train_edges
+Amazon-Book,test,52643,38912,0,0,40.936,25,0.564,,,complete,credited_fraction_exact_over_all_train_edges

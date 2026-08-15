@@ -10,6 +10,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def aggregate_symmetric_edges(x, edge_index, weights):
+    """Aggregate a *symmetric* edge_index exactly once per directed entry.
+
+    BenchmarkDataset.get_sparse_adjacency already stores both u→i and i→u.
+    Older model loops added a second reverse index_add and therefore counted
+    every message twice. New calibration runs use this corrected helper.
+    """
+    out = torch.zeros_like(x)
+    out.index_add_(0, edge_index[0], weights.unsqueeze(-1) * x[edge_index[1]])
+    return out
+
+
 class MCShapleyEdgeWeighting(nn.Module):
     """
     Channel A credit proxy used by the retained checkpoints.
@@ -28,6 +40,7 @@ class MCShapleyEdgeWeighting(nn.Module):
         max_coalition_size=32,
         num_permutations=25,
         temperature=0.5,
+        tail_bonus=0.05,
     ):
         super().__init__()
         self.num_users = num_users
@@ -36,6 +49,7 @@ class MCShapleyEdgeWeighting(nn.Module):
         self.max_coalition_size = max_coalition_size
         self.num_permutations = num_permutations
         self.temperature = temperature
+        self.tail_bonus = tail_bonus
         self.ema_decay = 0.85
 
         # EMA buffer to store historical Shapley credits per user's top neighbors
@@ -75,7 +89,7 @@ class MCShapleyEdgeWeighting(nn.Module):
             # Reward tail items if mask provided
             if tail_mask is not None:
                 t_mask = tail_mask.to(device)[neigh_tensor]
-                phi_est = phi_est + 0.05 * t_mask.float()
+                phi_est = phi_est + self.tail_bonus * t_mask.float()
 
             # Numerical stability guard: check for NaN or zero-variance
             if torch.isnan(phi_est).any():
@@ -267,6 +281,10 @@ class CoopGCN(nn.Module):
         num_layers=3,
         lambda_param=0.03,
         num_hyperedges=250,
+        max_coalition_size=32,
+        edge_tail_bonus=0.05,
+        hypergraph_mix=0.01,
+        norm_scale_trainable=True,
     ):
         super().__init__()
         self.num_users = num_users
@@ -274,6 +292,7 @@ class CoopGCN(nn.Module):
         self.embed_dim = embed_dim
         self.num_layers = num_layers
         self.lambda_param = lambda_param
+        self.hypergraph_mix = hypergraph_mix
 
         # Base embeddings (Layer 0)
         self.user_embeds = nn.Parameter(
@@ -291,9 +310,15 @@ class CoopGCN(nn.Module):
         )
 
         # Submodules
-        self.norm_scale = nn.Parameter(torch.ones(1) * 1.0)
+        self.norm_scale = nn.Parameter(
+            torch.ones(1), requires_grad=norm_scale_trainable
+        )
         self.edge_shapley = MCShapleyEdgeWeighting(
-            num_users, num_items, embed_dim
+            num_users,
+            num_items,
+            embed_dim,
+            max_coalition_size=max_coalition_size,
+            tail_bonus=edge_tail_bonus,
         )
         self.hyper_conv = ShapleyHypergraphConv(num_hyperedges=num_hyperedges)
         self.svd_view = SVDContrastiveView(num_users, num_items, rank=16)
@@ -317,19 +342,16 @@ class CoopGCN(nn.Module):
         layer_embeds = [x_curr]
 
         for _ in range(self.num_layers):
-            x_next = torch.zeros_like(x_curr)
-            x_next.index_add_(
-                0, edge_index[0], w_ui.unsqueeze(-1) * x_curr[edge_index[1]]
-            )
-            x_next.index_add_(
-                0, edge_index[1], w_ui.unsqueeze(-1) * x_curr[edge_index[0]]
-            )
+            x_next = aggregate_symmetric_edges(x_curr, edge_index, w_ui)
 
             if hyperedges is not None and len(hyperedges) > 0:
                 h_out = self.hyper_conv(
                     x_curr, hyperedges, self.num_users, self.num_items
                 )
-                x_next = 0.99 * x_next + 0.01 * h_out
+                x_next = (
+                    (1.0 - self.hypergraph_mix) * x_next
+                    + self.hypergraph_mix * h_out
+                )
 
             x_curr = x_next
             layer_embeds.append(x_curr)
@@ -378,13 +400,7 @@ class LightGCN(nn.Module):
         layer_embeds = [x_curr]
 
         for _ in range(self.num_layers):
-            x_next = torch.zeros_like(x_curr)
-            x_next.index_add_(
-                0, edge_index[0], topo_norm.unsqueeze(-1) * x_curr[edge_index[1]]
-            )
-            x_next.index_add_(
-                0, edge_index[1], topo_norm.unsqueeze(-1) * x_curr[edge_index[0]]
-            )
+            x_next = aggregate_symmetric_edges(x_curr, edge_index, topo_norm)
             x_curr = x_next
             layer_embeds.append(x_curr)
 
@@ -417,13 +433,7 @@ class LightGCNPlusPlus(nn.Module):
 
         mod_norm = topo_norm * self.scale_param
         for _ in range(self.num_layers):
-            x_next = torch.zeros_like(x_curr)
-            x_next.index_add_(
-                0, edge_index[0], mod_norm.unsqueeze(-1) * x_curr[edge_index[1]]
-            )
-            x_next.index_add_(
-                0, edge_index[1], mod_norm.unsqueeze(-1) * x_curr[edge_index[0]]
-            )
+            x_next = aggregate_symmetric_edges(x_curr, edge_index, mod_norm)
             x_curr = x_next
             layer_embeds.append(x_curr)
 
@@ -467,13 +477,7 @@ class GATCF(nn.Module):
         layer_embeds = [x_curr]
 
         for _ in range(self.num_layers):
-            x_next = torch.zeros_like(x_curr)
-            x_next.index_add_(
-                0, edge_index[0], mod_norm.unsqueeze(-1) * x_curr[edge_index[1]]
-            )
-            x_next.index_add_(
-                0, edge_index[1], mod_norm.unsqueeze(-1) * x_curr[edge_index[0]]
-            )
+            x_next = aggregate_symmetric_edges(x_curr, edge_index, mod_norm)
             x_curr = x_next
             layer_embeds.append(x_curr)
 
@@ -508,13 +512,7 @@ class DyHuCoGBaseline(nn.Module):
         layer_embeds = [x_curr]
 
         for _ in range(self.num_layers):
-            x_next = torch.zeros_like(x_curr)
-            x_next.index_add_(
-                0, edge_index[0], topo_norm.unsqueeze(-1) * x_curr[edge_index[1]]
-            )
-            x_next.index_add_(
-                0, edge_index[1], topo_norm.unsqueeze(-1) * x_curr[edge_index[0]]
-            )
+            x_next = aggregate_symmetric_edges(x_curr, edge_index, topo_norm)
 
             if hyperedges is not None and len(hyperedges) > 0:
                 h_out = self.hyper_conv(
@@ -606,13 +604,7 @@ class RecDCL(nn.Module):
         layer_embeds = [x_curr]
 
         for _ in range(self.num_layers):
-            x_next = torch.zeros_like(x_curr)
-            x_next.index_add_(
-                0, edge_index[0], topo_norm.unsqueeze(-1) * x_curr[edge_index[1]]
-            )
-            x_next.index_add_(
-                0, edge_index[1], topo_norm.unsqueeze(-1) * x_curr[edge_index[0]]
-            )
+            x_next = aggregate_symmetric_edges(x_curr, edge_index, topo_norm)
             x_curr = x_next
             layer_embeds.append(x_curr)
 
@@ -651,13 +643,7 @@ class HCCF(nn.Module):
         layer_embeds = [x_curr]
 
         for _ in range(self.num_layers):
-            x_next = torch.zeros_like(x_curr)
-            x_next.index_add_(
-                0, edge_index[0], topo_norm.unsqueeze(-1) * x_curr[edge_index[1]]
-            )
-            x_next.index_add_(
-                0, edge_index[1], topo_norm.unsqueeze(-1) * x_curr[edge_index[0]]
-            )
+            x_next = aggregate_symmetric_edges(x_curr, edge_index, topo_norm)
 
             if hyperedges is not None and len(hyperedges) > 0:
                 h_out = self.hyper_conv(
@@ -697,13 +683,7 @@ class HPCF(nn.Module):
         layer_embeds = [x_curr]
 
         for _ in range(self.num_layers):
-            x_next = torch.zeros_like(x_curr)
-            x_next.index_add_(
-                0, edge_index[0], topo_norm.unsqueeze(-1) * x_curr[edge_index[1]]
-            )
-            x_next.index_add_(
-                0, edge_index[1], topo_norm.unsqueeze(-1) * x_curr[edge_index[0]]
-            )
+            x_next = aggregate_symmetric_edges(x_curr, edge_index, topo_norm)
 
             if hyperedges is not None and len(hyperedges) > 0:
                 h_out = self.hyper_conv(

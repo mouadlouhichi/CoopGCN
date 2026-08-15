@@ -1,0 +1,7 @@
+component,parameter,effective_range_or_weight,measured_interpretation,status,notes
+G1,lambda_edge,0.97_to_1.03,maximum_edge_multiplier_band,complete,only_capped_edges_have_nonzero_proxy_targets
+G2,hypergraph_mix,0.01,nominal_channel_mix,complete,sparse_hyperedges_touch_under_one_percent_of_catalogue
+G3,kappa,1.00_to_1.01,sample_weight_range,complete,no_pruning_applied
+contrastive,lambda_cl,0.005,loss_coefficient,complete,component_effect_unmeasured
+proxy_distillation,lambda_game,0.01,loss_coefficient,complete,temperature_mismatch_unmeasured
+norm_scale,nu,unbounded_learned_scalar,plausible_exposure_confound,complete,freeze_at_one_ablation_pending

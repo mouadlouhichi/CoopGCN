@@ -1,5 +1,7 @@
-evidence_status: preliminary_single_run
+evidence_status: uncalibrated_single_run_do_not_compare
 checkpoint_code_lineage: 81da541462499697370963528aebcd2c107da911
+known_checkpoint_harness_fault: symmetric_edge_index_messages_were_accumulated_twice
+current_calibration_code: aggregate_each_symmetric_directed_entry_once
 seed: 42
 hardware: not_retained
 python_version: not_retained

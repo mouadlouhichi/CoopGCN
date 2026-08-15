@@ -1,0 +1,4 @@
+dataset,model,seed,split_id,retained_ndcg_20,published_reference_ndcg_20,retained_to_reference_ratio,calibration_threshold_ratio,calibration_pass,status,notes
+Gowalla,LightGCN,42,retained,0.0348,0.1554,0.224,0.667,false,requires_rerun,reference_from_He_et_al_2020_different_protocol
+Yelp2018,LightGCN,42,retained,0.0145,0.0530,0.274,0.667,false,requires_rerun,reference_from_He_et_al_2020_different_protocol
+Amazon-Book,LightGCN,42,retained,0.0002,0.0315,0.006,0.667,false,requires_rerun,reference_from_He_et_al_2020_different_protocol

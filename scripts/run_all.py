@@ -43,7 +43,7 @@ from scripts.emit_tables import emit_all_tables
 
 def run_benchmark(
     target_datasets=["ML-100k", "ML-1M", "Gowalla"],
-    epochs=15,
+    epochs=1000,
     output_dir="results",
     resume=True,
 ):
@@ -76,38 +76,38 @@ def run_benchmark(
         print(f"EXPERIMENT 2: 10-Model Head-to-Head Baseline Training [{dataset_name}]")
         print("=" * 70)
         models_to_train = {
-            "MF": MF(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=0),
-            "NCF": NCF(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=1),
-            "LightGCN": LightGCN(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
-            "LightGCN++": LightGCNPlusPlus(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
-            "GAT-CF": GATCF(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
-            "RecDCL": RecDCL(dataset.num_users, dataset.num_items, embed_dim=32, num_layers=2),
+            "MF": MF(dataset.num_users, dataset.num_items, embed_dim=64, num_layers=0),
+            "NCF": NCF(dataset.num_users, dataset.num_items, embed_dim=64, num_layers=1),
+            "LightGCN": LightGCN(dataset.num_users, dataset.num_items, embed_dim=64, num_layers=3),
+            "LightGCN++": LightGCNPlusPlus(dataset.num_users, dataset.num_items, embed_dim=64, num_layers=3),
+            "GAT-CF": GATCF(dataset.num_users, dataset.num_items, embed_dim=64, num_layers=3),
+            "RecDCL": RecDCL(dataset.num_users, dataset.num_items, embed_dim=64, num_layers=3),
             "HCCF": HCCF(
                 dataset.num_users,
                 dataset.num_items,
-                embed_dim=32,
-                num_layers=2,
+                embed_dim=64,
+                num_layers=3,
                 num_hyperedges=max(10, len(dataset.hyperedges)),
             ),
             "HPCF": HPCF(
                 dataset.num_users,
                 dataset.num_items,
-                embed_dim=32,
-                num_layers=2,
+                embed_dim=64,
+                num_layers=3,
                 num_hyperedges=max(10, len(dataset.hyperedges)),
             ),
             "DyHuCoG": DyHuCoGBaseline(
                 dataset.num_users,
                 dataset.num_items,
-                embed_dim=32,
-                num_layers=2,
+                embed_dim=64,
+                num_layers=3,
                 num_hyperedges=max(10, len(dataset.hyperedges)),
             ),
             "CoopGCN (Ours)": CoopGCN(
                 dataset.num_users,
                 dataset.num_items,
-                embed_dim=32,
-                num_layers=2,
+                embed_dim=64,
+                num_layers=3,
                 lambda_param=0.03,
                 num_hyperedges=max(10, len(dataset.hyperedges)),
             ),
@@ -121,12 +121,12 @@ def run_benchmark(
                 model=model,
                 dataset=dataset,
                 loss_fn=loss_fn,
-                lr=0.005,
+                lr=0.001,
                 weight_decay=1e-4,
-                batch_size=1024,
+                batch_size=2048,
                 device=device,
                 shapley_refresh_period=5,
-                data_shapley_period=10,
+                data_shapley_period=20,
             )
             history = trainer.train(
                 epochs=epochs,
@@ -187,31 +187,24 @@ def run_benchmark(
     print("\n" + "=" * 70)
     print("EXPERIMENT 4: Component Ablation Study (G1, G2, G3, L_game)")
     print("=" * 70)
-    ablation_models = {
-        "CoopGCN (w/o G1 Edge Proxy)": CoopGCN(
+    def make_coop(**kwargs):
+        return CoopGCN(
             primary_dataset.num_users,
             primary_dataset.num_items,
-            embed_dim=32,
-            num_layers=2,
-            lambda_param=0.0,
+            embed_dim=64,
+            num_layers=3,
             num_hyperedges=max(10, len(primary_dataset.hyperedges)),
-        ),
-        "CoopGCN (w/o G2 Hyperedge Proxy)": CoopGCN(
-            primary_dataset.num_users,
-            primary_dataset.num_items,
-            embed_dim=32,
-            num_layers=2,
-            lambda_param=0.03,
-            num_hyperedges=0,
-        ),
-        "CoopGCN (w/o L_game Consistency)": CoopGCN(
-            primary_dataset.num_users,
-            primary_dataset.num_items,
-            embed_dim=32,
-            num_layers=2,
-            lambda_param=0.03,
-            num_hyperedges=max(10, len(primary_dataset.hyperedges)),
-        ),
+            **kwargs,
+        )
+
+    ablation_specs = {
+        "CoopGCN (frozen norm)": (make_coop(norm_scale_trainable=False), CoopGCNLoss(), True),
+        "CoopGCN (w/o G1 Edge Proxy)": (make_coop(lambda_param=0.0), CoopGCNLoss(), True),
+        "CoopGCN (w/o G2 Hyperedge Proxy)": (make_coop(hypergraph_mix=0.0), CoopGCNLoss(), True),
+        "CoopGCN (w/o G3 weights)": (make_coop(), CoopGCNLoss(), False),
+        "CoopGCN (w/o contrastive)": (make_coop(), CoopGCNLoss(lambda_cl=0.0), True),
+        "CoopGCN (w/o L_game Consistency)": (make_coop(), CoopGCNLoss(lambda_game=0.0), True),
+        "CoopGCN (w/o tail bonus)": (make_coop(edge_tail_bonus=0.0), CoopGCNLoss(), True),
     }
     component_ablation = {
         "1. LightGCN (Floor)": primary_results_dict["LightGCN"],
@@ -222,21 +215,17 @@ def run_benchmark(
         "6. HPCF": primary_results_dict["HPCF"],
         "7. DyHuCoG": primary_results_dict["DyHuCoG"],
     }
-    for name, ab_model in ablation_models.items():
+    for name, (ab_model, loss_fn, use_g3) in ablation_specs.items():
         print(f"---> Training ablation variant: {name} ...")
-        loss_fn = (
-            CoopGCNLoss(lambda_game=0.0)
-            if "L_game" in name
-            else CoopGCNLoss()
-        )
         trainer = CoopGCNTrainer(
             model=ab_model,
             dataset=primary_dataset,
             loss_fn=loss_fn,
-            lr=0.005,
+            lr=0.001,
             weight_decay=1e-4,
-            batch_size=1024,
+            batch_size=2048,
             device=device,
+            use_g3_weights=use_g3,
         )
         trainer.train(
             epochs=epochs,
@@ -279,24 +268,24 @@ def run_benchmark(
                     n_model = LightGCN(
                         noisy_ds.num_users,
                         noisy_ds.num_items,
-                        embed_dim=32,
-                        num_layers=2,
+                        embed_dim=64,
+                        num_layers=3,
                     )
                     loss_fn = None
                 elif name == "GAT-CF":
                     n_model = GATCF(
                         noisy_ds.num_users,
                         noisy_ds.num_items,
-                        embed_dim=32,
-                        num_layers=2,
+                        embed_dim=64,
+                        num_layers=3,
                     )
                     loss_fn = None
                 elif name == "DyHuCoG":
                     n_model = DyHuCoGBaseline(
                         noisy_ds.num_users,
                         noisy_ds.num_items,
-                        embed_dim=32,
-                        num_layers=2,
+                        embed_dim=64,
+                        num_layers=3,
                         num_hyperedges=max(10, len(noisy_ds.hyperedges)),
                     )
                     loss_fn = None
@@ -304,8 +293,8 @@ def run_benchmark(
                     n_model = CoopGCN(
                         noisy_ds.num_users,
                         noisy_ds.num_items,
-                        embed_dim=32,
-                        num_layers=2,
+                        embed_dim=64,
+                        num_layers=3,
                         lambda_param=0.03,
                         num_hyperedges=max(10, len(noisy_ds.hyperedges)),
                     )
@@ -314,7 +303,7 @@ def run_benchmark(
                     model=n_model,
                     dataset=noisy_ds,
                     loss_fn=loss_fn,
-                    lr=0.005,
+                    lr=0.001,
                     device=device,
                 )
                 trainer.train(
@@ -372,7 +361,7 @@ if __name__ == "__main__":
         nargs="+",
         default=["ML-100k", "ML-1M", "Gowalla"],
     )
-    parser.add_argument("--epochs", type=int, default=15)
+    parser.add_argument("--epochs", type=int, default=1000)
     parser.add_argument("--output_dir", type=str, default="results")
     parser.add_argument("--no-resume", action="store_true", help="Force retrain without loading checkpoints")
     args = parser.parse_args()

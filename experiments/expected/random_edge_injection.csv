@@ -1,0 +1,5 @@
+dataset,model,seed,noise_ratio,ndcg_20,tr_20,coverage_20,degradation_ndcg,status,notes
+ML-1M,CoopGCN,42,0.00,,,,,pending,
+ML-1M,CoopGCN,42,0.05,,,,,pending,
+ML-1M,CoopGCN,42,0.10,,,,,pending,
+ML-1M,CoopGCN,42,0.20,,,,,pending,

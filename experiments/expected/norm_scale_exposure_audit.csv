@@ -1,0 +1,11 @@
+dataset,model,learned_norm_scale,ndcg_20,tr_20,coverage_20,status,notes
+ML-100K,CoopGCN,true,0.1826,0.0106,46.9,diagnostic_complete,retained_single_run
+ML-100K,LightGCN++,true,0.1627,0.0100,46.5,diagnostic_complete,retained_single_run
+ML-1M,CoopGCN,true,0.1994,0.0075,40.7,diagnostic_complete,retained_single_run
+ML-1M,LightGCN++,true,0.2054,0.0008,37.3,diagnostic_complete,retained_single_run
+Gowalla,CoopGCN,true,0.1089,0.0104,7.95,diagnostic_complete,retained_single_run
+Gowalla,LightGCN++,true,0.1092,0.0116,8.06,diagnostic_complete,retained_single_run
+Yelp2018,CoopGCN,true,0.0376,0.0006,5.36,diagnostic_complete,retained_single_run
+Yelp2018,LightGCN++,true,0.0359,0.0006,5.01,diagnostic_complete,retained_single_run
+Amazon-Book,CoopGCN,true,0.0235,0.0036,6.47,diagnostic_complete,retained_single_run
+Amazon-Book,LightGCN++,true,0.0222,0.0027,5.44,diagnostic_complete,retained_single_run

@@ -41,6 +41,7 @@ class CoopGCNTrainer:
         device=None,
         shapley_refresh_period=10,
         data_shapley_period=20,
+        use_g3_weights=True,
     ):
         torch.manual_seed(42)
         np.random.seed(42)
@@ -63,6 +64,7 @@ class CoopGCNTrainer:
         self.num_negs = num_negs
         self.shapley_refresh_period = shapley_refresh_period
         self.data_shapley_period = data_shapley_period
+        self.use_g3_weights = use_g3_weights
 
         self.optimizer = optim.Adam(
             self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay
@@ -353,7 +355,11 @@ class CoopGCNTrainer:
             if epoch % self.shapley_refresh_period == 1:
                 self._refresh_shapley_values()
 
-            if epoch % self.data_shapley_period == 1 and epoch > 1:
+            if (
+                self.use_g3_weights
+                and epoch % self.data_shapley_period == 1
+                and epoch > 1
+            ):
                 self._refresh_data_shapley()
 
             l_tot, l_rank, l_cl, l_game = self.train_epoch()

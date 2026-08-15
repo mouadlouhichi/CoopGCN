@@ -1,0 +1,4 @@
+dataset,model,seed,device,epochs,train_seconds,seconds_per_epoch,edge_proxy_refresh_seconds,group_proxy_refresh_seconds,data_proxy_refresh_seconds,inference_ms_per_user,peak_memory_mb,status,notes
+ML-1M,LightGCN,42,,,,,,,,,,pending,
+ML-1M,LightGCN++,42,,,,,,,,,,pending,
+ML-1M,CoopGCN,42,,,,,,,,,,pending,

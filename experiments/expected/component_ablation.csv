@@ -1,0 +1,9 @@
+dataset,variant,seed,norm_scale_trainable,lambda_edge,hypergraph_mix,use_g3_weights,lambda_cl,lambda_game,tail_bonus,ndcg_20,tr_20,coverage_20,distinct_items,status,notes
+ML-1M,full,42,true,0.03,0.01,true,0.005,0.01,0.05,,,,,pending,
+ML-1M,frozen_norm,42,false,0.03,0.01,true,0.005,0.01,0.05,,,,,pending,
+ML-1M,w/o_G1,42,true,0.00,0.01,true,0.005,0.01,0.05,,,,,pending,
+ML-1M,w/o_G2,42,true,0.03,0.00,true,0.005,0.01,0.05,,,,,pending,
+ML-1M,w/o_G3,42,true,0.03,0.01,false,0.005,0.01,0.05,,,,,pending,
+ML-1M,w/o_contrastive,42,true,0.03,0.01,true,0.000,0.01,0.05,,,,,pending,
+ML-1M,w/o_game_loss,42,true,0.03,0.01,true,0.005,0.00,0.05,,,,,pending,
+ML-1M,w/o_tail_bonus,42,true,0.03,0.01,true,0.005,0.01,0.00,,,,,pending,

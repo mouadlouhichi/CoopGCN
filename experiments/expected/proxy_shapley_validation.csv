@@ -1,0 +1,2 @@
+dataset,seed,user_sample_size,permutations,edge_count,spearman_q_phi,distillation_gap_max,distillation_gap_mean,proxy_ndcg_20,proxy_tr_20,proxy_coverage_20,shapley_ndcg_20,shapley_tr_20,shapley_coverage_20,status,notes
+ML-100K,42,943,50,,,,,,,,,,,pending,

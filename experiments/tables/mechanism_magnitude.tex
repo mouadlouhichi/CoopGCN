@@ -1,0 +1,16 @@
+\begin{table*}[t]
+\centering
+\caption{Confirmatory record: mechanism\_magnitude. Pending rows are not results.}
+\begin{tabular}{llllll}
+\toprule
+\textbf{component} & \textbf{parameter} & \textbf{effective\_range\_or\_weight} & \textbf{measured\_interpretation} & \textbf{status} & \textbf{notes} \\
+\midrule
+G1 & lambda\_edge & 0.97\_to\_1.03 & maximum\_edge\_multiplier\_band & complete & only\_capped\_edges\_have\_nonzero\_proxy\_targets \\
+G2 & hypergraph\_mix & 0.01 & nominal\_channel\_mix & complete & sparse\_hyperedges\_touch\_under\_one\_percent\_of\_catalogue \\
+G3 & kappa & 1.00\_to\_1.01 & sample\_weight\_range & complete & no\_pruning\_applied \\
+contrastive & lambda\_cl & 0.005 & loss\_coefficient & complete & component\_effect\_unmeasured \\
+proxy\_distillation & lambda\_game & 0.01 & loss\_coefficient & complete & temperature\_mismatch\_unmeasured \\
+norm\_scale & nu & unbounded\_learned\_scalar & plausible\_exposure\_confound & complete & freeze\_at\_one\_ablation\_pending \\
+\bottomrule
+\end{tabular}
+\end{table*}

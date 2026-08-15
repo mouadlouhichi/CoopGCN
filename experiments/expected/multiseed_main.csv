@@ -1,0 +1,7 @@
+dataset,model,seed,split_id,ndcg_20,recall_20,tr_20,coverage_20,distinct_items,gini,train_seconds,inference_ms_per_user,peak_memory_mb,status,notes
+ML-1M,CoopGCN,1,retained,,,,,,,,,,pending,
+ML-1M,CoopGCN,2,retained,,,,,,,,,,pending,
+ML-1M,CoopGCN,3,retained,,,,,,,,,,pending,
+Yelp2018,CoopGCN,1,retained,,,,,,,,,,pending,
+Yelp2018,CoopGCN,2,retained,,,,,,,,,,pending,
+Yelp2018,CoopGCN,3,retained,,,,,,,,,,pending,

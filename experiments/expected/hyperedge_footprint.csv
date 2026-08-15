@@ -1,0 +1,4 @@
+dataset,hyperedges,max_size,max_item_slots,catalogue_items,max_slot_fraction,channel_mix,status,notes
+Gowalla,15,11,165,40981,0.00403,0.01,complete,upper_bound_ignores_duplicate_items
+Yelp2018,41,6,246,38048,0.00647,0.01,complete,upper_bound_ignores_duplicate_items
+Amazon-Book,19,8,152,91599,0.00166,0.01,complete,upper_bound_ignores_duplicate_items

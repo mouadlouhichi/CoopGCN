@@ -19,10 +19,20 @@ from coopgcn.models import (
     LightGCNPlusPlus,
     GATCF,
     DyHuCoGBaseline,
+    aggregate_symmetric_edges,
 )
 from coopgcn.losses import CoopGCNLoss
 from coopgcn.shapley_data import TMCShapleyDataValuator
 from coopgcn.evaluator import compute_all_metrics
+
+
+def test_symmetric_edge_index_is_not_double_counted():
+    x = torch.tensor([[1.0], [2.0]])
+    # Both directed entries are already present.
+    edge_index = torch.tensor([[0, 1], [1, 0]], dtype=torch.long)
+    weights = torch.ones(2)
+    out = aggregate_symmetric_edges(x, edge_index, weights)
+    assert torch.allclose(out, torch.tensor([[2.0], [1.0]]))
 
 
 def test_mc_shapley_edge_weighting_forward():
@@ -126,6 +136,7 @@ def test_compute_all_metrics():
 
 
 if __name__ == "__main__":
+    test_symmetric_edge_index_is_not_double_counted()
     test_mc_shapley_edge_weighting_forward()
     test_shapley_hypergraph_conv_forward()
     test_svd_contrastive_view()
