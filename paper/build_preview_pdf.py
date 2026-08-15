@@ -82,6 +82,12 @@ S = {
                            fontSize=7.4, leading=9.2),
     "tblh": ParagraphStyle("tblh", parent=ss["Normal"], fontName="Times-Bold",
                            fontSize=7.4, leading=9.2, alignment=TA_CENTER),
+    "tblw": ParagraphStyle("tblw", parent=ss["Normal"], fontName="Times-Roman",
+                           fontSize=5.9, leading=7.2),
+    "tblwb": ParagraphStyle("tblwb", parent=ss["Normal"], fontName="Times-Bold",
+                            fontSize=5.9, leading=7.2),
+    "tblwh": ParagraphStyle("tblwh", parent=ss["Normal"], fontName="Times-Bold",
+                            fontSize=5.9, leading=7.2, alignment=TA_CENTER),
     "alg": ParagraphStyle("alg", parent=ss["Normal"], fontName="Times-Roman",
                           fontSize=7.8, leading=9.8),
     "algn": ParagraphStyle("algn", parent=ss["Normal"], fontName="Times-Roman",
@@ -338,10 +344,11 @@ story.append(Spacer(1, 6))
 story.append(Table([[""]], colWidths=[BODY_W],
                    style=TableStyle([("LINEABOVE", (0, 0), (-1, 0), 0.6, colors.HexColor("#999999"))])))
 story.append(NextPageTemplate("two"))
-story.append(PageBreak())
+story.append(FrameBreak())
 
 
 def emit_table_env(block, avail=None, wide=False):
+    tsty = ("tblw", "tblwb", "tblwh") if wide else ("tbl", "tblb", "tblh")
     cap = re.search(r"\\caption\{(.*?)\}\s*\n\s*\\label", block, re.S)
     lab = re.search(r"\\label\{(tab:[^}]+)\}", block)
     capt = cap.group(1) if cap else ""
@@ -391,9 +398,9 @@ def emit_table_env(block, avail=None, wide=False):
             if mc:
                 c = mc.group(2)
                 styles.append(("SPAN", (0, rowi), (-1, rowi)))
-            st = S["tblb"] if ("\\textbf" in c or "\\multicolumn" in c) else S["tbl"]
+            st = S[tsty[1]] if ("\\textbf" in c or "\\multicolumn" in c) else S[tsty[0]]
             if rowi == 0:
-                st = S["tblh"]
+                st = S[tsty[2]]
             out.append(Paragraph(inline(c, refmap), st))
         while len(out) < ncol:
             out.append(Paragraph("", S["tbl"]))
@@ -419,10 +426,10 @@ def emit_table_env(block, avail=None, wide=False):
 
     t = Table(rows, colWidths=w, repeatRows=1, hAlign="CENTER")
     base = [("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("TOPPADDING", (0, 0), (-1, -1), 2.6),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 2.6),
-            ("LEFTPADDING", (0, 0), (-1, -1), 3),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+            ("TOPPADDING", (0, 0), (-1, -1), 1.4 if wide else 2.6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 1.4 if wide else 2.6),
+            ("LEFTPADDING", (0, 0), (-1, -1), 1.2 if wide else 3),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 1.2 if wide else 3),
             ("ALIGN", (1, 1), (-1, -1), "CENTER")]
     t.setStyle(TableStyle(base + styles))
     story.append(KeepTogether([
@@ -448,7 +455,7 @@ def emit_figure_env(block, avail=None, wide=False):
     w, h = PILImage.open(path).size
     iw = avail if avail is not None else BODY_W
     ih = h * (iw / w)
-    maxh = (0.62 * (PAGE_H - 2 * MARGIN)) if wide else (PAGE_H - 2 * MARGIN - 120)
+    maxh = PAGE_H - 2 * MARGIN - 150
     if ih > maxh:
         ih = maxh
         iw = w * (ih / h)
@@ -519,12 +526,7 @@ _wide_open = [False]
 
 
 def start_wide():
-    """Switch to the full-width float page; consecutive floats stack there."""
-    if _wide_open[0]:
-        return
-    story.append(NextPageTemplate("wide"))
-    story.append(PageBreak())
-    _wide_open[0] = True
+    return
 
 
 def end_wide():
@@ -533,11 +535,7 @@ def end_wide():
 
 
 def close_wide():
-    """Return to the two-column body flow."""
-    if _wide_open[0]:
-        story.append(NextPageTemplate("two"))
-        story.append(FrameBreak())
-        _wide_open[0] = False
+    return
 
 
 def emit_paragraphs(txt):
@@ -595,15 +593,11 @@ for m in pattern.finditer(body):
     elif g["tbl"] is not None:
         emit_table_env(g["tbl"], avail=COL_W_G)
     elif g["tbls"] is not None:
-        start_wide()
-        emit_table_env(g["tbls"], avail=BODY_W, wide=True)
-        end_wide()
+        emit_table_env(g["tbls"], avail=COL_W_G, wide=True)
     elif g["fig"] is not None:
         emit_figure_env(g["fig"], avail=COL_W_G)
     elif g["figs"] is not None:
-        start_wide()
-        emit_figure_env(g["figs"], avail=BODY_W, wide=True)
-        end_wide()
+        emit_figure_env(g["figs"], avail=COL_W_G, wide=True)
     elif g["alg"] is not None:
         emit_algorithm(g["alg"])
     elif g["cor"] is not None:
@@ -717,10 +711,15 @@ fr = Frame(MARGIN + COL_W_G + GUTTER, MARGIN, COL_W_G, H, id="c2",
            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 fw = Frame(MARGIN, MARGIN, BODY_W, H, id="w",
            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
-ftitle = Frame(MARGIN, MARGIN, BODY_W, H, id="t",
+TBAND = 0.545 * H          # title + abstract + highlights + keywords
+ftitle = Frame(MARGIN, MARGIN + H - TBAND, BODY_W, TBAND, id="t",
                leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+ftl = Frame(MARGIN, MARGIN, COL_W_G, H - TBAND - 8, id="tc1",
+            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+ftr = Frame(MARGIN + COL_W_G + GUTTER, MARGIN, COL_W_G, H - TBAND - 8, id="tc2",
+            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 doc.addPageTemplates([
-    PageTemplate(id="title", frames=[ftitle], onPage=on_page),
+    PageTemplate(id="title", frames=[ftitle, ftl, ftr], onPage=on_page),
     PageTemplate(id="two", frames=[fl, fr], onPage=on_page),
     PageTemplate(id="wide", frames=[fw], onPage=on_page),
 ])

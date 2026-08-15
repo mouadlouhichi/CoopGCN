@@ -14,7 +14,7 @@ Impact Factor 5.3), prepared against the journal's
 | `figures/Figure_2..7.png` | Result figures, copied verbatim from `main_results/figures/` |
 | `make_figure1.py` | Regenerates the Figure 1 fallback PNG |
 | `build_preview_pdf.py` | Renders a preview PDF without a TeX installation |
-| `CoopGCN_Array_preview.pdf` | Rendered preview (21 pp., two-column) |
+| `CoopGCN_Array_preview.pdf` | Rendered preview (13 pp., two-column) |
 
 **Figure 1 is drawn in TikZ, black only**, inline in `coopgcn_array.tex`
 (matching the DyHuCoG house style). Compiling with `pdflatex` uses the TikZ

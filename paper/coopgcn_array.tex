@@ -121,40 +121,70 @@ theory \sep Shapley value \sep Popularity bias \sep Long-tail recommendation
 \section{Introduction}
 \label{sec:intro}
 
+On the MovieLens-1M benchmark, six of the seven collaborative filtering models
+we evaluate---including LightGCN, two contrastive variants and a hypergraph
+recommender---recommend \emph{not a single} item from the least-popular 80\% of
+the catalogue to \emph{any} user. Their Tail Recall at cut-off 20 is not small;
+it is exactly zero. The same models place between 5\% and 11\% of the catalogue
+in front of users at all, and lose a quarter of their ranking accuracy when
+20\% of the training edges are replaced by noise.
+
+These three symptoms---no long-tail exposure, narrow catalogue coverage, and
+brittleness under corruption---are usually treated as separate problems with
+separate fixes. We argue they are one problem. All three follow from a single
+design decision inherited from LightGCN: the model has no representation of
+\emph{how much a given interaction is worth}.
+
 \subsection{The LightGCN paradigm and its core trade-off}
 \label{sec:paradigm}
 
-Graph convolutional networks have reshaped collaborative filtering (CF) by
-modelling user--item interaction histories as bipartite graphs. Foundational
-architectures such as NGCF \citep{wang2019ngcf} demonstrated the value of
-high-order connectivity, but LightGCN \citep{he2020lightgcn} revealed that
-feature-transformation matrices and nonlinear activations cause oversmoothing
-and training instability in pure CF. Simplifying message passing to
-symmetric-normalised linear aggregation,
+Graph convolutional networks reshaped collaborative filtering (CF) by
+modelling user--item interaction histories as bipartite graphs. NGCF
+\citep{wang2019ngcf} demonstrated the value of high-order connectivity, and
+LightGCN \citep{he2020lightgcn} then showed that the feature-transformation
+matrices and nonlinear activations inherited from generic GCNs cause
+oversmoothing and training instability in pure CF. Removing them reduces
+message passing to symmetric-normalised linear aggregation,
 \begin{equation}
 \mathbf{E}^{(k+1)} = \left( \mathbf{D}^{-\frac{1}{2}} \mathbf{A}
 \mathbf{D}^{-\frac{1}{2}} \right) \mathbf{E}^{(k)},
 \label{eq:lightgcn}
 \end{equation}
-followed by mean layer pooling and a Bayesian Personalized Ranking (BPR)
-objective \citep{rendle2009bpr} with one uniformly sampled negative per
-positive, established a powerful empirical floor.
+which with mean layer pooling and a Bayesian Personalized Ranking objective
+\citep{rendle2009bpr} established an empirical floor that has proved
+remarkably hard to beat.
 
-This simplicity came at an unacknowledged architectural cost: the removal of
-every mechanism for \emph{differential credit assignment}. In
-Eq.~\eqref{eq:lightgcn} the influence of neighbour $i$ on user $u$ is fixed at
-$w_{ui} = 1/\sqrt{d_u d_i}$, a quantity determined entirely by graph topology.
-A decade-old casual rating and a recent purchase of a niche item propagate with
-identical relative importance. No component of the model can express that one
-interaction was informative and another was noise; consequently the model
-cannot denoise, cannot explain, and cannot resist an adversary who merely adds
-edges.
+The three equations defining LightGCN encode three silent assumptions: every
+neighbour is aggregated with weight $1/\sqrt{d_u d_i}$, every layer is pooled
+equally, and every negative is sampled uniformly. The first is our concern
+here. It fixes the influence of neighbour $i$ on user $u$ at a quantity
+determined \emph{entirely by graph topology}, with no dependence on what the
+interaction meant.
+
+Consider a user whose history contains a blockbuster clicked once by accident
+and a niche title they returned to repeatedly. Equation~\eqref{eq:lightgcn}
+weights these by degree alone. Worse, because the coefficient is
+degree-normalised and the blockbuster has the larger degree, the accidental
+click is down-weighted for a reason that has nothing to do with its being
+accidental---and the niche title is up-weighted for a reason that has nothing
+to do with its being meaningful. The ordering happens to be right; the
+mechanism producing it is blind. Where degree and informativeness diverge, as
+they do for popular-but-incidental and rare-but-deliberate interactions alike,
+the model has no parameter with which to tell them apart.
+
+Three consequences follow directly, and they are precisely the three symptoms
+above. The model cannot \emph{denoise}, because it cannot identify a
+low-value edge. It cannot \emph{explain}, because it has no per-interaction
+attribution to report. And it cannot \emph{resist} an adversary, because an
+injected edge is trusted exactly as much as an observed one.
 
 \subsection{Four structural failure modes of unweighted propagation}
 \label{sec:failuremodes}
 
 A systematic analysis reveals that LightGCN's remaining weaknesses are
-precisely the capabilities its simplification discarded.
+precisely the capabilities its simplification discarded. We label them
+$\mathbf{W_k}$ here and expand the labelling into a full twelve-category
+taxonomy in Section~\ref{sec:taxonomy}.
 
 \begin{enumerate}
 \item \textbf{Flat credit and uniform neighbour weighting
@@ -184,65 +214,94 @@ argues that the high-severity entries reduce to three root causes.
 \subsection{The game-theoretic perspective}
 \label{sec:perspective}
 
-In explainable AI, cooperative game theory provides an axiomatic foundation
-for attributing model outcomes to individual inputs. In a GCN, predicting a
-preference score $s_{ui} = \bar{\mathbf{e}}_u \cdot \bar{\mathbf{e}}_i$ is
-inherently a team effort: the score is the output of aggregating messages
-across historical interaction neighbours.
+The natural response is to make the weights learnable, and graph attention
+does exactly that. Our position is that this is the right instinct applied
+with the wrong tool, and the reason is worth stating precisely.
 
-Asking \emph{which neighbours contributed most to user $u$'s final embedding}
-is formally equivalent to a cooperative coalition game $\Gamma_u =
-(\mathcal{N}(u), v_u)$. Unlike heuristic attention mechanisms---which carry no
-formal fairness guarantee and frequently over-index on popular nodes---the
-Shapley value \citep{shapley1953value} guarantees that credit allocation
-satisfies four axioms: \emph{efficiency}, the total credit distributed equals
-the net embedding-quality gain; \emph{symmetry}, interchangeable interactions
-receive equal weight; \emph{dummy player}, uninformative interactions receive
-exactly zero weight; and \emph{additivity}, credit across multi-task value
-functions sums linearly.
+Predicting a preference score $s_{ui} = \bar{\mathbf{e}}_u \cdot
+\bar{\mathbf{e}}_i$ is a problem of \emph{team production}: the pooled
+embedding $\bar{\mathbf{e}}_u$ is generated jointly by the neighbours in
+$\mathcal{N}(u)$, and no single neighbour produces it alone. Asking how much
+each contributed is not merely analogous to a cooperative game---it is one,
+namely $\Gamma_u = (\mathcal{N}(u), v_u)$, with the neighbours as players and
+representation quality as the characteristic function.
 
-Two of these bear directly on the failure modes above. Symmetry forbids
-weighting an interaction by item degree when marginal utilities are equal,
-which is exactly the channel through which popularity bias enters
-Eq.~\eqref{eq:lightgcn}. Dummy player assigns zero credit to a neighbour whose
-marginal contribution vanishes in every coalition, which is what an
-adversarially injected edge approximately is. Learned attention satisfies
-neither property by construction; nothing in its objective forbids convergence
-to degree-correlated weights, and on head-heavy data that is typically what
-minimises training loss.
+This matters because cooperative game theory answers the question
+\emph{uniquely}. The Shapley value \citep{shapley1953value} is the only
+allocation satisfying efficiency (all credit is distributed), symmetry
+(equal contributions earn equal credit), dummy player (a null contributor
+earns zero), and additivity (credit decomposes linearly across objectives).
+Attention weights satisfy none of the four, and two of the failures are
+consequential rather than cosmetic.
+
+\emph{Symmetry} forbids weighting an interaction by item degree when marginal
+utilities are equal. This is exactly the channel through which popularity bias
+enters Eq.~\eqref{eq:lightgcn}, and nothing in an attention module's objective
+closes it: if degree-correlated weights lower training loss---which on
+head-heavy data they typically do---attention will learn them. Axiomatic
+weighting cannot, because symmetry is a constraint on the allocation rather
+than a preference expressed in a loss.
+
+\emph{Dummy player} assigns exactly zero credit to a neighbour whose marginal
+contribution vanishes in every coalition. An adversarially injected edge is,
+by construction, close to such a player. This converts robustness from a
+property one hopes for into one that follows from the allocation rule, and
+Section~\ref{sec:prop2} states it as a bound.
+
+The distinction between axiomatic and heuristic credit is therefore an
+empirical question with a sharp form---\emph{is Shapley just expensive
+attention?}---which we formalise in Section~\ref{sec:central} as a
+make-or-break ablation with a victory condition fixed in advance.
 
 \subsection{Summary of contributions}
 \label{sec:contrib}
 
 \begin{enumerate}
-\item \textbf{Systematic analysis of failure modes.} We catalogue twelve
-representational and training weaknesses of linear graph CF, grade them by
-severity, map each to the literature documenting it, and reduce them to three
-root causes (Section~\ref{sec:taxonomy}).
+\item \textbf{A diagnosis, not a list.} We catalogue twelve representational
+and training weaknesses of linear graph CF, grade them by severity, map each
+to the literature documenting it, and show that the high-severity subset
+reduces to three root causes---credit is flat, structure is pairwise-only, and
+the training recipe amplifies the head (Section~\ref{sec:taxonomy}). Each
+recent improvement to LightGCN patches exactly one; CoopGCN targets all three.
 
 \item \textbf{Tri-level cooperative game framework.} We formulate cooperative
-games at the edge level ($\mathbf{G_1}$, pairwise message weighting),
-hyperedge level ($\mathbf{G_2}$, dynamic group channel weighting extending
-DyHuCoG) and data level ($\mathbf{G_3}$, holdout temporal NDCG valuation via
-TMC-Shapley), with explicit characteristic functions
-(Section~\ref{sec:arch}).
+games at the edge level ($\mathbf{G_1}$), hyperedge level ($\mathbf{G_2}$,
+extending DyHuCoG) and data level ($\mathbf{G_3}$, TMC-Shapley valuation on
+holdout NDCG), giving explicit characteristic functions for each and combining
+them in a single trainable architecture (Section~\ref{sec:arch}).
 
-\item \textbf{Axiomatic versus heuristic attention bridge.} We prove
-(Proposition~\ref{prop:recovery}) that LightGCN and scalar norm weighting
-(LightGCN++) are special cases of Shapley-weighted propagation, and establish
-a head-to-head ablation protocol comparing Shapley weighting against learnable
-attention (Section~\ref{sec:central}).
+\item \textbf{Theory that constrains the design.} We prove that LightGCN and
+LightGCN++ scalar weighting are special cases of Shapley-modulated propagation
+recovered at $\lambda = 0$ and under symmetric utility
+(Proposition~\ref{prop:recovery}), so the framework is a strict
+generalisation; and that the influence of a noise edge is bounded by
+$O(\lambda\epsilon)$ rather than $\Theta(1/\sqrt{d_u d_{i^\ast}})$
+(Proposition~\ref{prop:robust}), which Section~\ref{sec:rq4} then tests
+directly.
 
-\item \textbf{Zero-overhead inference.} We introduce a consistency
-regularisation objective that trains learnable attention to target
-stop-gradient EMA Shapley credits, eliminating game-theoretic computation at
-inference (Section~\ref{sec:zero}).
+\item \textbf{Axiomatic credit at zero serving cost.} A stop-gradient EMA
+consistency loss trains learnable attention to track Shapley credits, so all
+game-theoretic computation is confined to training and inference cost is
+identical to LightGCN (Section~\ref{sec:zero}).
 
-\item \textbf{Leakage-free empirical validation.} We evaluate under a strict
-temporal split protocol with an automated leakage audit, reporting accuracy,
-tail recall, coverage, Gini and noise robustness with explicit provenance for
-every number (Sections~\ref{sec:design}--\ref{sec:results}).
+\item \textbf{Leakage-audited evaluation with stated provenance.} Under a
+strict temporal protocol with an automated leakage assertion, CoopGCN improves
+NDCG@20 over the strongest baseline by 6.7\% (ML-1M), 13.1\% (Yelp2018) and
+12.1\% (Amazon-Book); raises catalogue coverage by $4.2\times$ to $56.7\times$
+over LightGCN; and loses 5.4\% NDCG@20 under 20\% edge injection against
+24.8--29.6\% for every baseline. Ablation attributes 62.2\% of the tail-recall
+gain to $\mathbf{G_1}$ alone. We state the provenance of every reported number
+and the limitations that follow (Sections~\ref{sec:provenance},
+\ref{sec:limitations}).
 \end{enumerate}
+
+\paragraph{Roadmap}
+Section~\ref{sec:related} surveys related work and presents the taxonomy;
+Section~\ref{sec:theory} develops the axiomatic foundation and the two
+propositions; Section~\ref{sec:arch} specifies the architecture;
+Section~\ref{sec:complexity} analyses cost; Section~\ref{sec:design} details
+the protocol; Section~\ref{sec:results} reports results against RQ1--RQ5; and
+Section~\ref{sec:conclusion} concludes with limitations and future work.
 
 %==========================================================================
 \section{Related work and systematic taxonomy}
