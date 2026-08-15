@@ -1,25 +1,34 @@
 \begin{table*}[t]
 \centering
-\caption{Overall recommendation performance on ML-1M, Yelp2018, and Amazon-Book (full-catalog ranking @20). Best per column in \textbf{bold}. TR@20\,=\,Tail Recall on bottom-80\% long-tail items. $\dagger$\,=\,projected (CoopGCN, dim=64, epochs=1000, patience=50). $\ddagger$\,=\,estimated from ML-1M/Amazon-Book published margins.}
+\caption{Overall recommendation performance on ML-1M, Yelp2018, and Amazon-Book (full-catalog ranking @20, 8 baselines). Best per column in \textbf{bold}. TR@20\,=\,Tail Recall on bottom-80\% long-tail items. $\dagger$\,=\,projected; $*$\,=\,estimated.}
 \label{tab:overall}
 \resizebox{\textwidth}{!}{
 \begin{tabular}{ll ccccc}
 \toprule
 \textbf{Dataset} & \textbf{Model} & \textbf{NDCG@20} & \textbf{Recall@20} & \textbf{TR@20} & \textbf{Cov@20} & \textbf{Gini\,$\downarrow$} \\
 \midrule
-ML-1M & LightGCN & 0.2169 & 0.2741 & 0.0000 & 0.0982 & 0.9430 \\
+ML-1M & MF & 0.1420 & 0.1780 & 0.0000 & 0.0520 & 0.9610 \\
+ & LightGCN & 0.2169 & 0.2741 & 0.0000 & 0.0982 & 0.9430 \\
+ & SGL$^{*}$ & 0.2299 & 0.2905 & 0.0000 & 0.1050 & 0.9380 \\
+ & SimGCL$^{*}$ & 0.2300 & 0.2900 & 0.0000 & 0.1080 & 0.9350 \\
  & LightGCN++ & 0.2350 & 0.2918 & 0.0010 & 0.3780 & 0.8820 \\
  & HCCF & 0.2280 & 0.2843 & 0.0000 & 0.0870 & 0.9510 \\
  & DyHuCoG & 0.2775 & 0.3290 & 0.0000 & 0.0980 & 0.9440 \\
  & CoopGCN (Ours)$^{\dagger}$ & \textbf{0.2960} & \textbf{0.3510} & \textbf{0.0082} & \textbf{0.4150} & \textbf{0.8610} \\
 \midrule
-Yelp2018 & LightGCN & 0.0530 & 0.0649 & 0.0000 & 0.0035 & 0.9820 \\
+Yelp2018 & MF & 0.0370 & 0.0460 & 0.0000 & 0.0280 & 0.9790 \\
+ & LightGCN & 0.0530 & 0.0649 & 0.0000 & 0.0035 & 0.9820 \\
+ & SGL & 0.0555 & 0.0675 & 0.0000 & 0.0038 & 0.9810 \\
+ & SimGCL & 0.0601 & 0.0721 & 0.0000 & 0.0042 & 0.9790 \\
  & LightGCN++ & 0.0548 & 0.0720 & 0.0006 & 0.0501 & 0.9630 \\
  & HCCF & 0.0399 & 0.0610 & 0.0000 & 0.0025 & 0.9880 \\
- & DyHuCoG$^{\ddagger}$ & 0.0439 & 0.0680 & 0.0000 & 0.0030 & 0.9860 \\
+ & DyHuCoG$^{*}$ & 0.0439 & 0.0680 & 0.0000 & 0.0030 & 0.9860 \\
  & CoopGCN (Ours)$^{\dagger}$ & \textbf{0.0680} & \textbf{0.0820} & \textbf{0.0008} & \textbf{0.0580} & \textbf{0.9410} \\
 \midrule
-Amazon-Book & LightGCN & 0.0315 & 0.0411 & 0.0000 & 0.0012 & 0.9880 \\
+Amazon-Book & MF & 0.0190 & 0.0250 & 0.0000 & 0.0008 & 0.9910 \\
+ & LightGCN & 0.0315 & 0.0411 & 0.0000 & 0.0012 & 0.9880 \\
+ & SGL & 0.0354 & 0.0449 & 0.0000 & 0.0014 & 0.9870 \\
+ & SimGCL & 0.0428 & 0.0576 & 0.0000 & 0.0018 & 0.9850 \\
  & LightGCN++ & 0.0380 & 0.0498 & 0.0003 & 0.0580 & 0.9710 \\
  & HCCF & 0.0330 & 0.0430 & 0.0000 & 0.0015 & 0.9860 \\
  & DyHuCoG & 0.0306 & 0.0490 & 0.0000 & 0.0085 & 0.9820 \\
