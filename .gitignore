@@ -12,3 +12,11 @@ checkpoints/
 *.ckpt
 notebooks/figures/*.pdf
 notebooks/.ipynb_checkpoints/
+
+# LaTeX preview build cache
+paper/.eqcache/
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
